@@ -4,6 +4,7 @@ const MAPPING = {
   lineColor: {bucket: "paint", key: "line-color"},
   lineWidth: {bucket: "paint", key: "line-width"},
   lineOpacity: {bucket: "paint", key: "line-opacity"},
+  lineDasharray: {bucket: "paint", key: "line-dasharray"},
   circleColor: {bucket: "paint", key: "circle-color"},
   circleRadius: {bucket: "paint", key: "circle-radius"},
   circleStrokeColor: {bucket: "paint", key: "circle-stroke-color"},
@@ -27,11 +28,11 @@ const MAPPING = {
   textIgnorePlacement: {bucket: "layout", key: "text-ignore-placement"},
 } as const satisfies Record<string, {bucket: Bucket; key: string}>;
 
-export type FlatLayerStyle = {[K in keyof typeof MAPPING]?: string | number | boolean};
+export type FlatLayerStyle = {[K in keyof typeof MAPPING]?: string | number | boolean | number[]};
 
-export function splitLayerStyle(style: FlatLayerStyle): {paint: Record<string, string | number | boolean>; layout: Record<string, string | number | boolean>} {
-  const paint: Record<string, string | number | boolean> = {};
-  const layout: Record<string, string | number | boolean> = {};
+export function splitLayerStyle(style: FlatLayerStyle): {paint: Record<string, string | number | boolean | number[]>; layout: Record<string, string | number | boolean | number[]>} {
+  const paint: Record<string, string | number | boolean | number[]> = {};
+  const layout: Record<string, string | number | boolean | number[]> = {};
   for (const [camel, value] of Object.entries(style)) {
     const mapped = (MAPPING as Record<string, {bucket: Bucket; key: string}>)[camel];
     if (!mapped || value === undefined) continue;

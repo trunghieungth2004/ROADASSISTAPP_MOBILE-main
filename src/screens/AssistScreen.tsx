@@ -4,6 +4,7 @@ import {AppText as Text, AppTextInput as TextInput} from "../components/AppText"
 import {MaterialIcons} from "@expo/vector-icons";
 import * as Location from "expo-location";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {useBottomTabBarHeight} from "@react-navigation/bottom-tabs";
 import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type {CameraRef} from "@maplibre/maplibre-react-native";
@@ -30,6 +31,7 @@ import {boundsOf} from "./route/routeGeo";
 import AssistMapView from "./assist/AssistMapView";
 import {ticketById, toggleSelected} from "./assist/assistPick";
 import {WALK_RADII, walkKm, walkMinutes} from "./assist/walkShop";
+import {GlassTarget} from "../components/GlassSurface";
 
 const ACTIVE_KEY = "roadassist.activeTicket";
 
@@ -43,6 +45,7 @@ export default function AssistScreen() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const navigation = useNavigation();
   const cameraRef = useRef<CameraRef | null>(null);
   const centeredRef = useRef(false);
@@ -360,6 +363,7 @@ export default function AssistScreen() {
   }
   return (
     <View style={styles.root}>
+      <GlassTarget style={StyleSheet.absoluteFill}>
       <AssistMapView
         theme={theme}
         cameraRef={cameraRef}
@@ -374,7 +378,8 @@ export default function AssistScreen() {
         onPickTicket={onPickTicket}
         onPickShop={(id) => void onPickShop(id)}
       />
-      <FabColumn bottom={cardH + 92}>
+      </GlassTarget>
+      <FabColumn bottom={cardH + 92 + tabBarHeight}>
         <Fab theme={theme} label={t.common.currentLocation} onPress={() => void onLocate()}>
           <MaterialIcons name="my-location" size={22} color={theme.primary} />
         </Fab>
@@ -383,7 +388,7 @@ export default function AssistScreen() {
         </Fab>
       </FabColumn>
       {selectedTicket ? (
-        <View style={[styles.selectedWrap, {bottom: cardH + 24}]} pointerEvents="box-none">
+        <View style={[styles.selectedWrap, {bottom: cardH + 24 + tabBarHeight}]} pointerEvents="box-none">
           <View style={[styles.selectedCard, {backgroundColor: theme.paper, borderColor: theme.border}]}>
             <View style={styles.selectedRow}>
               <Text style={[styles.cardTitle, {color: theme.text}]}>{ticketTitle(selectedTicket, t)}</Text>
@@ -415,7 +420,7 @@ export default function AssistScreen() {
           </View>
         </View>
       ) : null}
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.bottomContainer}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.bottomContainer, {bottom: tabBarHeight + 12}]}>
         <View onLayout={(e) => setCardH(e.nativeEvent.layout.height)} style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
           <ScrollView contentContainerStyle={styles.cardScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {active ? (

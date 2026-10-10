@@ -4,6 +4,7 @@ import {MaterialIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {AppText as Text} from "../AppText";
 import {darkTheme, lightTheme} from "../../theme";
+import GlassSurface from "../GlassSurface";
 
 export type OverlayVariant = "fullScreen" | "dialog" | "sheet";
 
@@ -127,12 +128,12 @@ export default function Overlay({visible, variant, title, leading, right, closeL
             accessibilityRole="button"
             accessibilityLabel={closeLabel}
           />
-          <View style={[styles.sheet, {backgroundColor: theme.paper, borderColor: theme.border, paddingBottom: insets.bottom + 12}]}>
+          <GlassSurface theme={theme} style={[styles.sheet, {borderColor: theme.glassBorder, paddingBottom: insets.bottom + 12}]}>
             <View style={styles.handle} />
             <Header title={title} leading={leading} right={right} trailing={<DismissButton closeLabel={closeLabel} onClose={onClose} />} />
             {body}
             {footed ? <Footer actions={actions} /> : null}
-          </View>
+          </GlassSurface>
         </View>
       </Modal>
     );
@@ -147,11 +148,11 @@ export default function Overlay({visible, variant, title, leading, right, closeL
           accessibilityLabel={closeLabel}
         />
         <View style={styles.dialogWrap} pointerEvents="box-none">
-          <View style={[styles.dialog, !scrolls && styles.dialogFree, {backgroundColor: theme.paper}]}>
+          <GlassSurface theme={theme} style={[styles.dialog, !scrolls && styles.dialogFree]}>
             <Header title={title} leading={leading} right={right} />
             {body}
             <Footer actions={dialogActions} />
-          </View>
+          </GlassSurface>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -160,11 +161,11 @@ export default function Overlay({visible, variant, title, leading, right, closeL
 
 const styles = StyleSheet.create({
   full: {flex: 1},
-  dialogRoot: {flex: 1, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.6)"},
+  dialogRoot: {flex: 1, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.38)"},
   dialogWrap: {width: "100%", paddingHorizontal: 24},
   dialog: {borderRadius: 16, padding: 16, gap: 12, maxHeight: "85%", width: "100%"},
   dialogFree: {maxHeight: undefined},
-  sheetRoot: {flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.6)"},
+  sheetRoot: {flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.38)"},
   sheet: {borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, padding: 12, gap: 8, maxHeight: "70%", width: "100%"},
   handle: {width: 40, height: 4, borderRadius: 2, backgroundColor: "#a3a3a3", alignSelf: "center"},
   headRow: {flexDirection: "row", alignItems: "center", gap: 8},

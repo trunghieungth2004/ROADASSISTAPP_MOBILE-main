@@ -13,6 +13,7 @@ import type {Strings} from "../../i18n/en";
 import {formatDist} from "../navigation/navUtils";
 import {formatUntil} from "./flagActions";
 import {timeAgoLabel} from "./hazardFilter";
+import GlassSurface from "../../components/GlassSurface";
 
 const addressCache = new Map<string, string>();
 
@@ -51,7 +52,7 @@ export default function HazardRow(props: Props) {
   const until = formatUntil(flag.ttlExpiresAtMs, Date.now(), t.flag);
   const sub = [progress, until].filter((part) => part !== null).join(" · ");
   return (
-    <View style={[styles.row, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+    <GlassSurface theme={theme} style={[styles.row, {borderColor: theme.glassBorder}]}>
       <Pressable style={styles.body} onPress={() => props.onOpen(flag)} accessibilityRole="button">
         <View style={[styles.iconCircle, {borderColor: kind.color}]}>
           <MaterialIcons name={kind.icon} size={22} color={kind.color} />
@@ -87,7 +88,7 @@ export default function HazardRow(props: Props) {
       <Fab theme={theme} size={44} hitSlop={6} label={t.hazards.centerPin} onPress={() => props.onCenter(flag)}>
         <MaterialIcons name="my-location" size={20} color={theme.primary} />
       </Fab>
-    </View>
+    </GlassSurface>
   );
 }
 

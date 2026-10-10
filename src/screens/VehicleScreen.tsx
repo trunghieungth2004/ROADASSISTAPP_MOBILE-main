@@ -3,6 +3,7 @@ import {FlatList, Pressable, RefreshControl, StyleSheet, View, useColorScheme} f
 import {AppText as Text} from "../components/AppText";
 import {MaterialCommunityIcons, MaterialIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {useBottomTabBarHeight} from "@react-navigation/bottom-tabs";
 import {listProfiles, type VehicleProfile} from "../api/vehicles";
 import {toMessage} from "../api/client";
 import {useAuth} from "../context/AuthContext";
@@ -25,6 +26,7 @@ export default function VehicleScreen() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [profiles, setProfiles] = useState<VehicleProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,7 +75,7 @@ export default function VehicleScreen() {
   }
   return (
     <ScreenContainer>
-      <View style={[styles.wrapper, {backgroundColor: theme.background}]}>
+      <View style={[styles.wrapper, {backgroundColor: theme.background, marginBottom: Math.max(0, tabBarHeight - insets.bottom)}]}>
         <View style={styles.header}>
           <Text style={[styles.title, {color: theme.text}]}>{t.vehicle.title}</Text>
           <Pressable style={[styles.addBtn, {backgroundColor: theme.primary}]} onPress={() => setCreateOpen(true)} accessibilityRole="button" accessibilityLabel={t.vehicle.create}>
@@ -85,7 +87,10 @@ export default function VehicleScreen() {
           <StatusRow theme={theme} text={t.vehicle.loading} />
         ) : (
           <FlatList
-            contentContainerStyle={styles.container}
+            contentContainerStyle={[
+              styles.container,
+              {paddingBottom: Math.max(16, tabBarHeight - insets.bottom + 16)},
+            ]}
             data={profiles}
             keyExtractor={(p) => p.id}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void reload("refresh")} tintColor={theme.primary} />}

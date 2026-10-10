@@ -35,6 +35,10 @@ import {pickFeedback} from "../components/feedback";
 import FlagReportDialog from "../components/FlagReportDialog";
 import type {FlagReport} from "../components/FlagSheet";
 import {flagOverlayActions} from "./hazards/flagActions";
+import GlassSurface, {GlassTarget, GlassTargetProvider} from "../components/GlassSurface";
+import TripFinishedModal from "../components/TripFinishedModal";
+import ReroutingCalculatingModal from "../components/ReroutingCalculatingModal";
+import {reverseLabel} from "../api/places";
 
 type Props = {
   t: Strings;
@@ -102,7 +106,22 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
   const [confirmSnack, setConfirmSnack] = useState<string | null>(null);
   const confirmSnackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const aliveRef = useRef(true);
+  const startTimeRef = useRef(Date.now());
+  const [destLabel, setDestLabel] = useState<string | null>(null);
+  const [finishedOpen, setFinishedOpen] = useState(false);
   const nav = useNavTracking({token, lang, t, dest, stops, width, vehicleType, initialRoute, seed, speak: voice.speak, resolveVoice: voice.resolveVoice});
+
+  useEffect(() => {
+    void reverseLabel(dest.lat, dest.lng, lang).then((lbl) => {
+      if (aliveRef.current) setDestLabel(lbl);
+    });
+  }, [dest.lat, dest.lng, lang]);
+
+  useEffect(() => {
+    if (nav.arrived) {
+      setFinishedOpen(true);
+    }
+  }, [nav.arrived]);
   const startCoord = initialRoute.geometry.coordinates[0];
   const initialCenter: [number, number] = startCoord ? [startCoord[0], startCoord[1]] : [seed.lng, seed.lat];
   const [listOpen, setListOpen] = useState(false);
@@ -376,7 +395,9 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
     return () => clearInterval(timer);
   }, [topCards.length]);
   return (
+    <GlassTargetProvider>
     <View style={[styles.root, {backgroundColor: theme.background}]}>
+      <GlassTarget style={StyleSheet.absoluteFill}>
       <NavMapView
         theme={theme}
         route={nav.route}
@@ -399,6 +420,7 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
         onAutoFlag={onAutoFlag}
         onRegionChanging={nav.onRegionChanging}
       />
+      </GlassTarget>
       <View onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}>
         <NavHeader
           t={t}
@@ -423,7 +445,8 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
               : p ? distBetween(p, {lat: c.flag.lat, lng: c.flag.lng}) : null;
             const remain = Math.max(0, CARD_TTL_MS - (nowTs - c.addedAt)) / CARD_TTL_MS;
             return (
-              <Pressable key={c.flag.id} style={[styles.topCard, {backgroundColor: theme.paper, borderColor: kind.color}]} onPress={() => nav.focusAt(c.flag.lat, c.flag.lng)} accessibilityRole="button" accessibilityLabel={t.nav.hazardFocus}>
+              <Pressable key={c.flag.id} style={[styles.topCard, {backgroundColor: "transparent", borderColor: kind.color}]} onPress={() => nav.focusAt(c.flag.lat, c.flag.lng)} accessibilityRole="button" accessibilityLabel={t.nav.hazardFocus}>
+                <GlassSurface theme={theme} intensity={55} style={[StyleSheet.absoluteFill, {borderRadius: 16, borderColor: kind.color}]} />
                 <MaterialIcons name={kind.icon} size={22} color={kind.color} />
                 <View style={styles.hazardText}>
                   <Text style={[styles.hazardTitle, {color: theme.text}]}>{flagTypeLabel(c.flag.type, t)}{toGo !== null ? ` · ${formatDist(toGo, t.route.km, t.nav.m)}` : ""}</Text>
@@ -437,14 +460,14 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
         </View>
       ) : null}
       <View style={[styles.speedSlot, {bottom: insets.bottom + 16}]}>
-        <View style={[styles.speedCircle, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        <GlassSurface theme={theme} intensity={55} style={[styles.speedCircle, {borderColor: theme.glassBorder}]}>
           <Text style={[styles.speedNumber, {color: theme.text}]}>{nav.speedKmh ?? "–"}</Text>
           <Text style={[styles.speedUnit, {color: theme.muted}]}>{t.nav.kmh}</Text>
-        </View>
+        </GlassSurface>
       </View>
       <View style={[styles.bottomStack, {bottom: insets.bottom + 12}]} onLayout={(e) => setBottomH(e.nativeEvent.layout.height)}>
         {nearestWarning ? (
-          <View style={[styles.hazardCard, {backgroundColor: theme.paper, borderColor: cardKind.color}]}>
+          <GlassSurface theme={theme} intensity={60} style={[styles.hazardCard, {borderColor: cardKind.color}]}>
             <View style={[styles.voteSide, {opacity: showVotes ? 1 : 0}]}>
               <Pressable style={[styles.voteMini, {backgroundColor: theme.primary}]} disabled={!showVotes || flagBusy} onPress={() => nearestWarning && void onConfirmFlag(nearestWarning.flagId)} accessibilityRole="button" accessibilityLabel={t.flag.confirm}>
                 <MaterialIcons name="check" size={18} color="#fff" />
@@ -463,15 +486,15 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
                 <MaterialIcons name="close" size={18} color={theme.danger} />
               </Pressable>
             </View>
-          </View>
+          </GlassSurface>
         ) : null}
-        <View style={[styles.bottomBar, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        <GlassSurface theme={theme} intensity={60} style={[styles.bottomBar, {borderColor: theme.glassBorder}]}>
           <Text style={[styles.remaining, {color: theme.text}]}>{formatDist(remaining, t.route.km, t.nav.m)}</Text>
           <Text style={[styles.eta, {color: theme.muted}]}>{t.nav.eta} {etaMin} {t.route.min}</Text>
           <View style={[styles.bar, {backgroundColor: theme.border}]}>
             <View style={[styles.barFill, {backgroundColor: theme.primary, width: `${Math.round(frac * 100)}%`}]} />
           </View>
-        </View>
+        </GlassSurface>
       </View>
       <FabColumn bottom={insets.bottom + 16}>
         {nav.hazardCount > 0 ? (
@@ -550,7 +573,25 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
           />
         </Overlay>
       ) : null}
+      <TripFinishedModal
+        t={t}
+        theme={theme}
+        visible={finishedOpen || nav.arrived}
+        destLabel={destLabel}
+        distanceMeters={initialRoute.distanceMeters ?? (nav.progress?.progressMeters ?? 0)}
+        durationSeconds={Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000))}
+        hazardsAvoidedCount={initialRoute.hazards?.length ?? (nav.flagWarnings.length > 0 ? nav.flagWarnings.length : 1)}
+        avgSpeedKmh={nav.speedKmh ?? null}
+        onDone={onExit}
+      />
+      <ReroutingCalculatingModal
+        t={t}
+        theme={theme}
+        visible={nav.rerouting}
+        topInset={insets.top + 16}
+      />
     </View>
+    </GlassTargetProvider>
   );
 }
 

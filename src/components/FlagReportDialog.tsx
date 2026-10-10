@@ -1,7 +1,7 @@
-import {useState} from "react";
-import FlagSheet, {useFlagDraft, type FlagReport} from "./FlagSheet";
-import Overlay from "./overlay/Overlay";
+import HazardReportWizard from "./HazardReportWizard";
+import type {FlagReport} from "./FlagSheet";
 import type {Strings} from "../i18n/en";
+import {useStrings} from "../context/LanguageContext";
 
 type Props = {
   t: Strings;
@@ -9,30 +9,20 @@ type Props = {
   lng: number;
   onClose: () => void;
   onSubmit: (report: FlagReport) => Promise<void> | void;
+  onViewOnMap?: (lat: number, lng: number) => void;
 };
 
-export default function FlagReportDialog({t, lat, lng, onClose, onSubmit}: Props) {
-  const draft = useFlagDraft();
-  const [busy, setBusy] = useState(false);
-  async function submit(): Promise<void> {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await onSubmit(draft.build());
-    } finally {
-      setBusy(false);
-    }
-  }
+export default function FlagReportDialog({t, lat, lng, onClose, onSubmit, onViewOnMap}: Props) {
+  const {lang} = useStrings();
   return (
-    <Overlay
-      visible
-      variant="dialog"
-      title={t.flag.reportTitle}
-      closeLabel={t.common.cancel}
+    <HazardReportWizard
+      t={t}
+      lang={lang}
+      lat={lat}
+      lng={lng}
       onClose={onClose}
-      actions={[{label: t.flag.submit, tone: "primary", busy, onPress: () => void submit()}]}
-    >
-      <FlagSheet t={t} lat={lat} lng={lng} draft={draft} />
-    </Overlay>
+      onSubmit={onSubmit}
+      onViewOnMap={onViewOnMap}
+    />
   );
 }

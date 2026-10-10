@@ -8,6 +8,7 @@ import {Camera, Images, Map, GeoJSONSource, type CameraRef} from "@maplibre/mapl
 import StyledLayer from "../../components/StyledLayer";
 import {bundledMapStyle} from "../../map/style";
 import FlagPinImages from "../../components/MapPinImages";
+import GlassSurface, {GlassTarget} from "../../components/GlassSurface";
 import {Fab} from "../../components/Fab";
 import type {AppTheme} from "../../theme";
 import type {Strings} from "../../i18n/en";
@@ -72,6 +73,7 @@ export default function RouteMapView(props: Props) {
           if (e.nativeEvent.touches.length > 1) touchRef.current = {stamp: Date.now()};
         }}
       >
+      <GlassTarget style={StyleSheet.absoluteFill}>
       <Map style={StyleSheet.absoluteFill} mapStyle={mapStyle} logo={false} attribution={false} androidView="texture" onPress={(e: unknown) => guardedPress(e)} onRegionIsChanging={(e: unknown) => props.onRegionChange(e)} onRegionDidChange={(e: unknown) => props.onRegionDid(e)} onDidFinishLoadingStyle={() => props.onMapReady()}>
         <Camera ref={props.cameraRef} initialViewState={{center: HCMC_CENTER, zoom: 13}} />
         <Images images={{
@@ -101,7 +103,7 @@ export default function RouteMapView(props: Props) {
         {props.dest ? <GeoJSONSource id="marker-b" data={pointFeature(props.dest.lng, props.dest.lat)}><StyledLayer type="symbol" id="marker-b-icon" style={{iconImage: "b-dot", iconSize: 0.33, iconAllowOverlap: true, iconIgnorePlacement: true}} /></GeoJSONSource> : null}
         {props.gps ? (
           <GeoJSONSource id="gps-dot" data={pointFeature(props.gps.lng, props.gps.lat)}>
-            <StyledLayer type="circle" id="gps-dot-circle" style={{circleRadius: 8, circleColor: "#0284c7", circleStrokeColor: "#ffffff", circleStrokeWidth: 3}} />
+            <StyledLayer type="circle" id="gps-dot-circle" style={{circleRadius: 8, circleColor: theme.primary, circleStrokeColor: "#ffffff", circleStrokeWidth: 3}} />
           </GeoJSONSource>
         ) : null}
         {props.flagPoint ? (
@@ -122,6 +124,7 @@ export default function RouteMapView(props: Props) {
         ) : null}
         <RouteFlags camRef={props.flagCamRef} token={props.flagsToken} refreshKey={props.flagsKey} onPick={props.onPickFlag} subscribeRegionDid={props.subscribeRegionDid} />
       </Map>
+      </GlassTarget>
       </View>
       {props.routes.length > 1 ? (
         <View style={[styles.topBar, {top: insets.top + 12}]}>
@@ -132,12 +135,13 @@ export default function RouteMapView(props: Props) {
               return (
                 <Pressable
                   key={i}
-                  style={[styles.pill, {backgroundColor: selected ? theme.primary : theme.paper, borderColor: theme.border}]}
+                  style={[styles.pill, {backgroundColor: selected ? theme.primary : "transparent", borderColor: selected ? theme.primary : "transparent"}]}
                   onPress={() => props.onSelectIndex(i)}
                   onLayout={(e) => {
                     pillX.current[i] = e.nativeEvent.layout.x;
                   }}
                 >
+                  {!selected ? <GlassSurface theme={theme} intensity={45} style={[StyleSheet.absoluteFill, styles.glassPill]} /> : null}
                   <View style={styles.pillInner}>
                     {meta.hazards > 0 ? (
                       <MaterialIcons name="warning-amber" size={16} color={selected ? "#fff" : "#f59e0b"} />
@@ -170,7 +174,8 @@ export default function RouteMapView(props: Props) {
 const styles = StyleSheet.create({
   topBar: {position: "absolute", left: 72, right: 72, alignItems: "center"},
   topBarContent: {paddingHorizontal: 12, gap: 8},
-  pill: {borderWidth: 1, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14},
+  pill: {borderWidth: 1, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, overflow: "hidden"},
+  glassPill: {borderRadius: 999, borderWidth: 0},
   pillInner: {flexDirection: "row", alignItems: "center", gap: 4},
   pickResolving: {position: "absolute", left: 12, width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.7)", zIndex: 10, elevation: 4},
 });

@@ -31,7 +31,19 @@ export class ApiError extends Error {
 }
 
 export function toMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
+  if (err instanceof ApiError) {
+    if (Array.isArray(err.errors) && err.errors.length > 0) {
+      return err.errors.map((e) => (typeof e === "string" ? e : JSON.stringify(e))).join(", ");
+    }
+    if (typeof err.errors === "string" && err.errors.length > 0) {
+      return err.errors;
+    }
+    if (err.errors && typeof err.errors === "object") {
+      const msgs = Object.values(err.errors).flat().filter(Boolean);
+      if (msgs.length > 0) return msgs.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+    }
+    return err.message;
+  }
   if (err instanceof Error) return err.message;
   return "Something went wrong";
 }

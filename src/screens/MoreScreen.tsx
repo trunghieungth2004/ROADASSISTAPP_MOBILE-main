@@ -4,6 +4,7 @@ import {AppText as Text, AppTextInput as TextInput} from "../components/AppText"
 import {MaterialIcons} from "@expo/vector-icons";
 import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {useBottomTabBarHeight} from "@react-navigation/bottom-tabs";
 import {setVolunteerAvailability, updateProfile, volunteerHeartbeat} from "../api/users";
 import {capturePosition, useLocationBeat} from "../services/locationBeats";
 import {missingKinds, providerPill, providerRowSubtitle, serviceLabel, switchEnabled} from "./more/providerUi";
@@ -25,6 +26,7 @@ import Overlay from "../components/overlay/Overlay";
 import {useThemeMode} from "../context/ThemeContext";
 import {getPermissionStates, openAppSettings, openBatterySettings, requestBackgroundLocationPermission, requestNotificationPermission, type AppPermissionStates} from "../services/permissions";
 import {syncPushToken} from "../services/push";
+import {useTutorial} from "../context/TutorialContext";
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -40,6 +42,7 @@ export default function MoreScreen() {
   const scheme = mode;
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [editOpen, setEditOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
@@ -50,6 +53,7 @@ export default function MoreScreen() {
   const [perms, setPerms] = useState<AppPermissionStates>({notifications: {granted: false, canAskAgain: true}, backgroundLocation: {granted: false, canAskAgain: true}});
   const [permsBusy, setPermsBusy] = useState(false);
   const navigation = useNavigation();
+  const {start: startTutorial, getTargetRef} = useTutorial();
   const [volBusy, setVolBusy] = useState(false);
   const [volError, setVolError] = useState<string | null>(null);
   const [reportCount, setReportCount] = useState(0);
@@ -208,8 +212,14 @@ export default function MoreScreen() {
   const missing = missingKinds(providers);
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={[styles.scroll, {backgroundColor: theme.background}]}>
-        <View style={[styles.headerCard, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+      <ScrollView
+        style={{marginBottom: Math.max(0, tabBarHeight - insets.bottom)}}
+        contentContainerStyle={[
+          styles.scroll,
+          {paddingBottom: Math.max(16, tabBarHeight - insets.bottom + 16), backgroundColor: theme.background},
+        ]}
+      >
+        <View ref={getTargetRef("moreProfile")} collapsable={false} style={[styles.headerCard, {backgroundColor: theme.paper, borderColor: theme.border}]}>
           <View style={styles.headerRow}>
             <View>
               <View style={[styles.avatar, {backgroundColor: theme.primary}]}><Text style={styles.avatarText}>{initials(displayName)}</Text></View>
@@ -240,6 +250,13 @@ export default function MoreScreen() {
               <Text style={[styles.statLabel, {color: theme.muted}]}>{t.more.confirmed}</Text>
             </View>
           </View>
+        </View>
+        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+          <Pressable style={styles.listRow} onPress={startTutorial} accessibilityRole="button">
+            <MaterialIcons name="help-outline" size={20} color={theme.primary} />
+            <Text style={[styles.listText, {color: theme.text}]}>{t.tutorial.replay}</Text>
+            <MaterialIcons name="chevron-right" size={20} color={theme.muted} />
+          </Pressable>
         </View>
         <Overlay
           visible={editOpen}

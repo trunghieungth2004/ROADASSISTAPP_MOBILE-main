@@ -3,6 +3,7 @@ import {FlatList, Pressable, RefreshControl, StyleSheet, View, useColorScheme} f
 import {AppText as Text} from "../components/AppText";
 import {MaterialIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {useBottomTabBarHeight} from "@react-navigation/bottom-tabs";
 import {useFocusEffect} from "@react-navigation/native";
 import * as Location from "expo-location";
 import ScreenContainer from "../components/ScreenContainer";
@@ -16,11 +17,12 @@ import StatusRow from "../components/StatusRow";
 import {Fab} from "../components/Fab";
 import {snackAboveTabs} from "../components/snackOffset";
 import {isStaleForRefresh} from "../components/feedback";
+import CommunityVerificationSheet from "../components/CommunityVerificationSheet";
 import {ensurePushConfigured, subscribeHazardPush, type HazardPushData} from "../services/push";
 import {useAuth} from "../context/AuthContext";
 import {useStrings} from "../context/LanguageContext";
 import {darkTheme, lightTheme} from "../theme";
-import type {Flag} from "../api/flags";
+import {confirmFlag, denyFlag, type Flag} from "../api/flags";
 import {flagTypeLabel} from "../i18n/labels";
 import {distBetween} from "./navigation/navUtils";
 import HazardMapView from "./hazards/HazardMapView";
@@ -34,6 +36,7 @@ export default function HazardScreen() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const mine = useMyFlags(token);
   const [showMap, setShowMap] = useState(false);
   const [filter, setFilter] = useState<HazardFilter>("ALL");
@@ -102,9 +105,33 @@ export default function HazardScreen() {
       setSnack(t.flag.removedMsg);
     }
   }
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+  const [deniedIds, setDeniedIds] = useState<Set<string>>(new Set());
+  async function onConfirmFlag(flagId: string): Promise<void> {
+    if (!token) return;
+    try {
+      await confirmFlag(flagId, token);
+      setVotedIds((prev) => new Set([...prev, flagId]));
+      setSnack(t.flag.confirmedMsg);
+      refreshMine();
+    } catch {
+      setSnack(t.flag.alreadyVoted);
+    }
+  }
+  async function onDenyFlag(flagId: string): Promise<void> {
+    if (!token) return;
+    try {
+      await denyFlag(flagId, token);
+      setDeniedIds((prev) => new Set([...prev, flagId]));
+      setSnack(t.flag.deniedMsg);
+      refreshMine();
+    } catch {
+      setSnack(t.flag.alreadyDenied);
+    }
+  }
   return (
     <ScreenContainer>
-      <View style={styles.root}>
+      <View style={[styles.root, {marginBottom: Math.max(0, tabBarHeight - insets.bottom)}]}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, {color: theme.text}]}>{t.hazards.myReports}</Text>
           <Fab theme={theme} size={40} label={showMap ? t.hazards.hideMap : t.hazards.showMap} onPress={() => setShowMap((v) => !v)}>
@@ -138,7 +165,10 @@ export default function HazardScreen() {
           <FlatList
             data={visible}
             keyExtractor={(f) => f.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[
+              styles.list,
+              {paddingBottom: Math.max(16, tabBarHeight - insets.bottom + 16)},
+            ]}
             refreshControl={<RefreshControl refreshing={mine.refreshing} onRefresh={mine.refresh} tintColor={theme.primary} />}
             ListEmptyComponent={<Text style={[styles.hint, {color: theme.muted}]}>{t.hazards.myEmpty}</Text>}
             renderItem={({item}) => (
@@ -164,35 +194,18 @@ export default function HazardScreen() {
         <Snack message={snack} severity="confirm" bottom={snackAboveTabs(insets.bottom)} accentColor={theme.primary} onHide={() => setSnack(null)} />
       )}
       {selected ? (
-        <Overlay
-          visible
-          variant="dialog"
-          title={flagTypeLabel(selected.type, t)}
-          leading={<MaterialIcons name={hazardKind(selected.type).icon} size={22} color={hazardKind(selected.type).color} />}
-          right={
-            <View style={[styles.statusChip, {backgroundColor: flagStatusColor(selected.status)}]}>
-              <Text style={styles.statusText}>{flagStatusLabel(selected.status, t)}</Text>
-            </View>
-          }
-          closeLabel={t.common.cancel}
+        <CommunityVerificationSheet
+          t={t}
+          flag={selected}
+          isOwn={uid != null && selected.reporterId === uid}
+          voted={votedIds.has(selected.id)}
+          denied={deniedIds.has(selected.id)}
+          busy={mine.busyId !== null}
+          onConfirm={(id) => void onConfirmFlag(id)}
+          onDeny={(id) => void onDenyFlag(id)}
+          onRemove={(id) => void onRemove(id)}
           onClose={() => setSelected(null)}
-          actions={flagOverlayActions(
-            selected.id,
-            selected.status,
-            uid != null && selected.reporterId === uid,
-            false,
-            false,
-            mine.busyId !== null,
-            {confirm: t.flag.confirm, deny: t.flag.deny, remove: t.flag.remove},
-            {onConfirm: () => {}, onDeny: () => {}, onRemove: (id) => void onRemove(id)},
-          )}
-        >
-          <FlagDetailSheet
-            t={t}
-            flag={selected}
-            isOwn={uid != null && selected.reporterId === uid}
-          />
-        </Overlay>
+        />
       ) : null}
     </ScreenContainer>
   );

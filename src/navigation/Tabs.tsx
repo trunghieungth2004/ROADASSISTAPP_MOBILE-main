@@ -1,5 +1,6 @@
 import {useEffect, useState, type ReactNode} from "react";
 import {ActivityIndicator, AppState, Platform, Pressable, StyleSheet, View, useColorScheme} from "react-native";
+import {BlurView} from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {AppText as Text} from "../components/AppText";
 import {createBottomTabNavigator, type BottomTabBarProps} from "@react-navigation/bottom-tabs";
@@ -10,6 +11,9 @@ import {useAuth} from "../context/AuthContext";
 import {useProfile} from "../context/ProfileContext";
 import {useStrings} from "../context/LanguageContext";
 import {darkTheme, lightTheme} from "../theme";
+import {GlassTargetProvider} from "../components/GlassSurface";
+import {TutorialProvider, useTutorial} from "../context/TutorialContext";
+import TutorialOverlay from "../components/TutorialOverlay";
 import LoginScreen from "../screens/LoginScreen";
 import OnboardingScreen, {type ShopDraft, type TowDraft} from "../screens/OnboardingScreen";
 import PermissionGateScreen from "../screens/PermissionGateScreen";
@@ -35,9 +39,13 @@ function TabBar({state, descriptors, navigation}: BottomTabBarProps) {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
+  const tutorial = useTutorial();
+  useEffect(() => {
+    tutorial.setTabNavigation((tab) => navigation.navigate(tab));
+  }, [navigation, tutorial.setTabNavigation]);
   const focusedOptions = descriptors[state.routes[state.index].key]?.options as {tabBarStyle?: {display?: string}} | undefined;
   if (focusedOptions?.tabBarStyle?.display === "none") return null;
-  return <View style={[styles.tabBar, {backgroundColor: theme.paper, borderTopColor: theme.divider, paddingBottom: insets.bottom}]}>{state.routes.map((route, index) => {
+  const items = state.routes.map((route, index) => {
     const focused = state.index === index;
     const options = descriptors[route.key].options;
     const color = focused ? theme.primary : theme.tabInactive;
@@ -45,11 +53,49 @@ function TabBar({state, descriptors, navigation}: BottomTabBarProps) {
       const event = navigation.emit({type: "tabPress", target: route.key, canPreventDefault: true});
       if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
     };
-    return <Pressable key={route.key} accessibilityRole="tab" accessibilityState={{selected: focused}} onPress={onPress} style={styles.tabItem}>
+    const tutorialTarget = route.name === "Route" ? "routeTab"
+      : route.name === "Hazards" ? "hazardsTab"
+        : route.name === "Assist" ? "assistTab"
+          : route.name === "More" ? "moreTab"
+            : undefined;
+    return <Pressable
+      key={route.key}
+      ref={tutorialTarget ? tutorial.getTargetRef(tutorialTarget) : undefined}
+      accessibilityRole="tab"
+      accessibilityState={{selected: focused}}
+      onPress={onPress}
+      style={styles.tabItem}
+    >
       <View style={[styles.iconSlot, focused && {backgroundColor: `${theme.primary}33`}]}>{(TAB_ICONS[route.name] ?? (() => null))({color, size: 22})}</View>
       <Text numberOfLines={1} style={[styles.tabLabel, {color}]}>{options.title ?? route.name}</Text>
     </Pressable>;
-  })}</View>;
+  });
+  const android = Platform.OS === "android";
+  const bg = scheme === "dark" ? "rgba(15,23,42,0.90)" : "rgba(255,255,255,0.90)";
+  const borderTop = scheme === "dark" ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)";
+  const barStyle = [
+    styles.tabBar,
+    {
+      backgroundColor: bg,
+      borderTopColor: borderTop,
+      paddingBottom: insets.bottom,
+      shadowColor: "#000",
+      shadowOffset: {width: 0, height: -4},
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+  ];
+  if (android) return <View style={barStyle}>{items}</View>;
+  return (
+    <BlurView
+      tint={scheme === "dark" ? "systemMaterialDark" : "systemMaterialLight"}
+      intensity={85}
+      style={barStyle}
+    >
+      {items}
+    </BlurView>
+  );
 }
 function UnsupportedRole() {
   const {t} = useStrings();
@@ -181,13 +227,20 @@ export default function Tabs() {
   if (!isRider) return <UnsupportedRole />;
   if (!permsDone) return <PermissionGate onDone={() => setPermsDone(true)} />;
   return (
-    <Tab.Navigator initialRouteName="Route" tabBar={(props) => <TabBar {...props} />} screenOptions={{headerShown: true, headerStyle: {backgroundColor: theme.paper}, headerTintColor: theme.text}}>
-      <Tab.Screen name="Route" component={RouteScreen} options={{title: t.tabs.route}} />
-      <Tab.Screen name="Hazards" component={HazardScreen} options={{title: t.tabs.hazards}} />
-      <Tab.Screen name="Assist" component={AssistScreen} options={{title: t.tabs.dispatch}} />
-      <Tab.Screen name="Vehicle" component={VehicleScreen} options={{title: t.tabs.vehicle}} />
-      <Tab.Screen name="More" component={MoreScreen} options={{title: t.tabs.more}} />
-    </Tab.Navigator>
+    <TutorialProvider>
+      <GlassTargetProvider>
+        <View style={styles.navigator}>
+          <Tab.Navigator initialRouteName="Route" tabBar={(props) => <TabBar {...props} />} screenOptions={{headerShown: true, headerStyle: {backgroundColor: theme.paper}, headerTintColor: theme.text, tabBarStyle: {position: "absolute"}}}>
+            <Tab.Screen name="Route" component={RouteScreen} options={{title: t.tabs.route}} />
+            <Tab.Screen name="Hazards" component={HazardScreen} options={{title: t.tabs.hazards}} />
+            <Tab.Screen name="Assist" component={AssistScreen} options={{title: t.tabs.dispatch}} />
+            <Tab.Screen name="Vehicle" component={VehicleScreen} options={{title: t.tabs.vehicle}} />
+            <Tab.Screen name="More" component={MoreScreen} options={{title: t.tabs.more}} />
+          </Tab.Navigator>
+          <TutorialOverlay />
+        </View>
+      </GlassTargetProvider>
+    </TutorialProvider>
   );
 }
-const styles = StyleSheet.create({center: {flex: 1, alignItems: "center", justifyContent: "center", gap: 12}, primary: {borderRadius: 8, padding: 12}, disabled: {opacity: 0.6}, primaryText: {color: "#fff", fontWeight: "700"}, tabBar: {flexDirection: "row", borderTopWidth: 1, paddingTop: 6}, tabItem: {flex: 1, alignItems: "center", justifyContent: "center", minHeight: 58, gap: 3}, iconSlot: {width: 48, height: 32, borderRadius: 999, overflow: "hidden", alignItems: "center", justifyContent: "center"}, tabLabel: {fontSize: 11, fontWeight: "600", maxWidth: "100%"}});
+const styles = StyleSheet.create({navigator: {flex: 1}, center: {flex: 1, alignItems: "center", justifyContent: "center", gap: 12}, primary: {borderRadius: 8, padding: 12}, disabled: {opacity: 0.6}, primaryText: {color: "#fff", fontWeight: "700"}, tabBar: {position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", borderTopWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 6}, tabItem: {flex: 1, alignItems: "center", justifyContent: "center", minHeight: 58, gap: 3}, iconSlot: {width: 48, height: 32, borderRadius: 999, overflow: "hidden", alignItems: "center", justifyContent: "center"}, tabLabel: {fontSize: 11, fontWeight: "600", maxWidth: "100%"}});

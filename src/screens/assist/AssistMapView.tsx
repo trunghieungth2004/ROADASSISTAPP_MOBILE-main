@@ -50,7 +50,7 @@ export default function AssistMapView(props: Props) {
         {props.walkRoute ? <GeoJSONSource id="assist-walk" data={{type: "Feature", geometry: props.walkRoute.geometry, properties: {}}}><StyledLayer type="line" id="assist-walk-line" beforeId="Ferry labels" style={{lineColor: theme.primary, lineWidth: 4, lineOpacity: 0.8, lineCap: "round", lineJoin: "round"}} /></GeoJSONSource> : null}
         {props.gps ? (
           <GeoJSONSource id="assist-gps" data={pointFeature(props.gps.lng, props.gps.lat)}>
-            <StyledLayer type="circle" id="assist-gps-dot" style={{circleRadius: 8, circleColor: "#0284c7", circleStrokeColor: "#ffffff", circleStrokeWidth: 3}} />
+            <StyledLayer type="circle" id="assist-gps-dot" style={{circleRadius: 8, circleColor: theme.primary, circleStrokeColor: "#ffffff", circleStrokeWidth: 3}} />
           </GeoJSONSource>
         ) : null}
         {props.dest ? (

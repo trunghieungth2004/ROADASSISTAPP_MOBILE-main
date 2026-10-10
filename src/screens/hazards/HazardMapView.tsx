@@ -20,7 +20,7 @@ export default function HazardMapView(props: Props) {
   const pendingRef = useRef<{lat: number; lng: number} | null>(null);
   const fittedRef = useRef(false);
   function drainPending(): void {
-    const pending = pendingRef.current;
+    const pending = pendingRef.current; 
     const cam = cameraRef.current;
     if (!pending || !cam) return;
     pendingRef.current = null;

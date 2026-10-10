@@ -48,7 +48,8 @@
       ],
       "expo-notifications",
       "expo-task-manager",
-      "expo-audio"
+      "expo-audio",
+      "./plugins/withTransparentNavigationBar"
     ]
   }
 }

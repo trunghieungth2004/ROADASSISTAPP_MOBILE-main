@@ -87,7 +87,8 @@ function FlagMapLayers({flags, onPick}: Props) {
     <>
       {groups.map((g) => (
           <GeoJSONSource key={`flag-fill-${g.icon}`} id={`flag-fill-${g.icon}`} data={g.fills}>
-            <StyledLayer type="fill" id={`flag-fill-${g.icon}`} style={{fillColor: flagStatusColor(g.status === "0" ? "x" : g.status), fillOpacity: 0.25}} />
+            <StyledLayer type="fill" id={`flag-fill-${g.icon}`} style={{fillColor: flagStatusColor(g.status === "0" ? "x" : g.status), fillOpacity: 0.2}} />
+            <StyledLayer type="line" id={`flag-line-${g.icon}`} style={{lineColor: "#ef4444", lineWidth: 2, lineDasharray: [3, 2], lineOpacity: 0.85}} />
           </GeoJSONSource>
       ))}
       {groups.map((g) => (
