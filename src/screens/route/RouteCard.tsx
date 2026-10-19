@@ -252,10 +252,10 @@ export default function RouteCard(props: Props) {
       {/* 8. Action Buttons (Start, Save, or Find Route) */}
       {props.result ? (
         <View style={styles.actionRow}>
-          <Pressable style={[styles.primary, {backgroundColor: theme.primary}, (props.busy || props.starting) && styles.disabled]} disabled={props.busy || props.starting} onPress={props.onStart}>
+          <Pressable style={[styles.primary, styles.actionBtn, {backgroundColor: theme.primary}, (props.busy || props.starting) && styles.disabled]} disabled={props.busy || props.starting} onPress={props.onStart}>
             {props.starting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>{t.nav.start}</Text>}
           </Pressable>
-          <Pressable style={[styles.primary, styles.saveBtn, {borderColor: theme.primary}, props.busy && styles.disabled]} disabled={props.busy} onPress={props.onSave}>
+          <Pressable style={[styles.primary, styles.actionBtn, styles.saveBtn, {borderColor: theme.primary}, props.busy && styles.disabled]} disabled={props.busy} onPress={props.onSave}>
             <Text style={[styles.primaryText, {color: theme.primary}]}>{t.route.saveRoute}</Text>
           </Pressable>
         </View>
@@ -263,7 +263,7 @@ export default function RouteCard(props: Props) {
         <StatusRow theme={theme} text={t.route.findingRoute} />
       ) : (
         <Pressable
-          style={[styles.primary, {backgroundColor: hasOriginNoDest ? theme.border : theme.primary}, hasOriginNoDest && styles.disabled]}
+          style={[styles.primary, styles.fullWidth, {backgroundColor: hasOriginNoDest ? theme.border : theme.primary}, hasOriginNoDest && styles.disabled]}
           disabled={hasOriginNoDest || props.busy}
           onPress={props.onFindRoute}
         >
@@ -325,8 +325,10 @@ const styles = StyleSheet.create({
   stopBadgeText: {color: "#fff", fontSize: 11, fontWeight: "700"},
   chipLabel: {fontSize: 12, fontWeight: "600", flexShrink: 1, maxWidth: 140},
   actionRow: {flexDirection: "row", gap: 8},
-  primary: {width: "100%", borderRadius: 10, padding: 12, alignItems: "center", justifyContent: "center"},
-  saveBtn: {flex: 1, borderWidth: 1, backgroundColor: "transparent"},
+  primary: {borderRadius: 10, padding: 12, alignItems: "center", justifyContent: "center"},
+  fullWidth: {width: "100%"},
+  actionBtn: {flex: 1},
+  saveBtn: {borderWidth: 1, backgroundColor: "transparent"},
   disabled: {opacity: 0.6},
   primaryText: {color: "#fff", fontWeight: "700", fontSize: 15},
   resultCard: {borderWidth: 1, borderRadius: 12, padding: 12, gap: 6, borderStyle: "dashed"},

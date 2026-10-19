@@ -216,7 +216,6 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
     if (!reportAt) return;
     try {
       await submitFlag({type: report.type, lat: reportAt.lat, lng: reportAt.lng, radiusMeters: report.radiusMeters, note: report.note}, token);
-      setReportAt(null);
       setFlagsKey((k) => k + 1);
       voice.speak(t.flag.reported);
       void nav.refreshRouteQuiet();
@@ -225,6 +224,7 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
       if (fetchErrorTimer.current) clearTimeout(fetchErrorTimer.current);
       fetchErrorTimer.current = setTimeout(() => setFetchError(null), 6000);
       voice.speak(toMessage(err));
+      throw err;
     }
   }
   async function onRemoveFlag(flagId: string) {
@@ -540,7 +540,7 @@ function NavigationContent({t, lang, token, initialRoute, dest, seed, stops, wid
         </Overlay>
       ) : null}
       {reportAt ? (
-        <FlagReportDialog t={t} lat={reportAt.lat} lng={reportAt.lng} onClose={() => setReportAt(null)} onSubmit={(r) => void onSubmitReport(r)} />
+        <FlagReportDialog t={t} lat={reportAt.lat} lng={reportAt.lng} onClose={() => setReportAt(null)} onSubmit={(r) => onSubmitReport(r)} />
       ) : null}
       {selectedFlag ? (
         <Overlay

@@ -4,8 +4,11 @@ jest.mock("@maplibre/maplibre-react-native", () => {
   const stub = (name: string) => (props: Record<string, unknown>) =>
     React.createElement(name, props, props.children);
   return {
+    Map: stub("Map"),
     MapView: stub("MapView"),
     Camera: stub("Camera"),
+    GeoJSONSource: stub("GeoJSONSource"),
+    Layer: stub("Layer"),
     PointAnnotation: stub("PointAnnotation"),
     ShapeSource: stub("ShapeSource"),
     SymbolLayer: stub("SymbolLayer"),

@@ -20,7 +20,6 @@ import {darkTheme, lightTheme} from "../theme";
 import PlaceSearchScreen from "./PlaceSearchScreen";
 import Overlay from "../components/overlay/Overlay";
 import FlagReportDialog from "../components/FlagReportDialog";
-import CommunityVerificationSheet from "../components/CommunityVerificationSheet";
 import SaveRouteDialog from "../components/SaveRouteDialog";
 import {useNavSession} from "../context/NavSessionContext";
 import SavedRoutesSheet from "../components/SavedRoutesSheet";
@@ -478,13 +477,12 @@ export default function RouteScreen() {
     setFlagBusy(true);
     try {
       await submitFlag({type: report.type, lat: flagPoint.lat, lng: flagPoint.lng, radiusMeters: report.radiusMeters, note: report.note}, token);
-      setFlagPoint(null);
-      setFlagMode(false);
       setFlagsKey((k) => k + 1);
       setSnack(t.flag.reported);
       void refreshRoutesQuiet();
     } catch (err) {
       setError(toMessage(err));
+      throw err;
     } finally {
       setFlagBusy(false);
     }
@@ -878,7 +876,7 @@ export default function RouteScreen() {
           lat={flagPoint.lat}
           lng={flagPoint.lng}
           onClose={cancelFlagReport}
-          onSubmit={(r) => void onSubmitFlag(r)}
+          onSubmit={(r) => onSubmitFlag(r)}
           onViewOnMap={(viewLat, viewLng) => {
             cancelFlagReport();
             void cameraRef.current?.setStop({center: [viewLng, viewLat], zoom: 15, duration: 600});
@@ -886,18 +884,35 @@ export default function RouteScreen() {
         />
       ) : null}
       {selectedFlag ? (
-        <CommunityVerificationSheet
-          t={t}
-          flag={selectedFlag}
-          isOwn={uid != null && selectedFlag.reporterId === uid}
-          voted={votedIds.has(selectedFlag.id)}
-          denied={deniedIds.has(selectedFlag.id)}
-          busy={flagBusy}
-          onConfirm={(id) => void onConfirmFlag(id)}
-          onDeny={(id) => void onDenyFlag(id)}
-          onRemove={(id) => void onRemoveFlag(id)}
+        <Overlay
+          visible
+          variant="dialog"
+          title={flagTypeLabel(selectedFlag.type, t)}
+          leading={<MaterialIcons name={hazardKind(selectedFlag.type).icon} size={22} color={hazardKind(selectedFlag.type).color} />}
+          right={
+            <View style={[styles.statusChip, {backgroundColor: flagStatusColor(selectedFlag.status)}]}>
+              <Text style={styles.statusText}>{flagStatusLabel(selectedFlag.status, t)}</Text>
+            </View>
+          }
+          closeLabel={t.common.cancel}
           onClose={() => setSelectedFlag(null)}
-        />
+          actions={flagOverlayActions(
+            selectedFlag.id,
+            selectedFlag.status,
+            uid != null && selectedFlag.reporterId === uid,
+            votedIds.has(selectedFlag.id),
+            deniedIds.has(selectedFlag.id),
+            flagBusy,
+            {confirm: t.flag.confirm, deny: t.flag.deny, remove: t.flag.remove},
+            {onConfirm: (id) => void onConfirmFlag(id), onDeny: (id) => void onDenyFlag(id), onRemove: (id) => void onRemoveFlag(id)},
+          )}
+        >
+          <FlagDetailSheet
+            t={t}
+            flag={selectedFlag}
+            isOwn={uid != null && selectedFlag.reporterId === uid}
+          />
+        </Overlay>
       ) : null}
       <ClearanceErrorDialog
         t={t}

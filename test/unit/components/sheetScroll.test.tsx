@@ -173,6 +173,13 @@ test("flag report dialog exposes its submit as a footer action", () => {
   );
   const modal = rendered.root.findByType(Modal);
   expect(modal.props.visible).toBe(true);
+  const {act} = require("react-test-renderer");
+  act(() => {
+    rendered.root.find((n) => n.props?.accessibilityLabel === en.flag.nextRadius).props.onPress();
+  });
+  act(() => {
+    rendered.root.find((n) => n.props?.accessibilityLabel === en.flag.confirmRadius).props.onPress();
+  });
   const actions = rendered.root.findAll((n) => n.props?.accessibilityLabel === en.flag.submit);
   expect(actions.length).toBeGreaterThan(0);
   rendered.unmount();

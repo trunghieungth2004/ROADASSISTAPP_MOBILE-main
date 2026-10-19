@@ -1,10 +1,12 @@
 import {useEffect, useMemo, useRef, useState} from "react";
-import {ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View, useColorScheme, useWindowDimensions} from "react-native";
+import {ActivityIndicator, PanResponder, Pressable, ScrollView, StyleSheet, View, useColorScheme} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {MaterialIcons} from "@expo/vector-icons";
 import {Camera, GeoJSONSource, Map, type CameraRef} from "@maplibre/maplibre-react-native";
 import {AppText as Text} from "./AppText";
 import StyledLayer from "./StyledLayer";
+import Overlay from "./overlay/Overlay";
+import {hazardKind} from "./hazardStyle";
 import {bundledMapStyle} from "../map/style";
 import {formatPoint, reverseLabel} from "../api/places";
 import type {FlagType} from "../api/flags";
@@ -28,6 +30,11 @@ const TTL_MAP: Record<FlagType, number> = {
   ACCIDENT: 2,
 };
 
+const MIN_RADIUS = 100;
+const MAX_RADIUS = 2000;
+const DEFAULT_RADIUS = 500;
+const RADIUS_STEP = 50;
+
 function circleCoordinates(lat: number, lng: number, radiusMeters: number): [number, number][] {
   const pts: [number, number][] = [];
   const cosLat = Math.cos((lat * Math.PI) / 180);
@@ -46,17 +53,19 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
-  const {width: windowWidth} = useWindowDimensions();
   const [mapStyle] = useState(() => bundledMapStyle() ?? "https://demotiles.maplibre.org/style.json");
 
   const [step, setStep] = useState<1 | 2 | 3 | "finished">(1);
   const [type, setType] = useState<FlagType>("FLOOD");
-  const [radiusMeters, setRadiusMeters] = useState(500);
+  const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS);
   const [address, setAddress] = useState<string>("");
   const [loadingAddress, setLoadingAddress] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [trackWidth, setTrackWidth] = useState(0);
 
   const miniMapCameraRef = useRef<CameraRef | null>(null);
+  const trackWidthRef = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -87,27 +96,68 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
   }, [t]);
 
   const ttlHours = TTL_MAP[type] ?? 6;
+  const kindColor = hazardKind(type).color;
 
   const expiryTimeStr = useMemo(() => {
     const exp = new Date(Date.now() + ttlHours * 3600 * 1000);
     const hours = String(exp.getHours()).padStart(2, "0");
     const mins = String(exp.getMinutes()).padStart(2, "0");
-    return `${ttlHours} hours (${hours}:${mins})`;
-  }, [ttlHours]);
+    return t.flag.expiryValue.replace("{n}", String(ttlHours)).replace("{time}", `${hours}:${mins}`);
+  }, [t, ttlHours]);
 
   const miniCircleCoords = useMemo(() => {
     return circleCoordinates(lat, lng, radiusMeters);
   }, [lat, lng, radiusMeters]);
 
+  function updateRadiusFromX(x: number): void {
+    const width = trackWidthRef.current;
+    if (width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, x / width));
+    const value = MIN_RADIUS + ratio * (MAX_RADIUS - MIN_RADIUS);
+    setRadiusMeters(Math.round(value / RADIUS_STEP) * RADIUS_STEP);
+  }
+
+  const sliderPan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => updateRadiusFromX(event.nativeEvent.locationX),
+        onPanResponderMove: (event) => updateRadiusFromX(event.nativeEvent.locationX),
+      }),
+    [],
+  );
+
   async function handleFinalSubmit() {
     if (busy) return;
     setBusy(true);
+    setError(null);
     try {
       await onSubmit({type, radiusMeters, note: undefined});
       setStep("finished");
+    } catch {
+      setError(t.flag.submitFailed);
     } finally {
       setBusy(false);
     }
+  }
+
+  function goBack(): void {
+    setError(null);
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setStep(1);
+      return;
+    }
+    onClose();
+  }
+
+  function handleRequestClose(): void {
+    if (busy) return;
+    goBack();
   }
 
   function handleViewOnMap() {
@@ -118,10 +168,8 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
     }
   }
 
-  const sliderWidth = Math.min(windowWidth - 48, 380);
-  const minR = 100;
-  const maxR = 2000;
-  const progressRatio = Math.max(0, Math.min(1, (radiusMeters - minR) / (maxR - minR)));
+  const progressRatio = Math.max(0, Math.min(1, (radiusMeters - MIN_RADIUS) / (MAX_RADIUS - MIN_RADIUS)));
+  const typeLabel = type === "FLOOD" ? t.flag.flood : type === "OBSTRUCTION" ? t.flag.obstruction : t.flag.accident;
 
   const typeConfig: {id: FlagType; title: string; icon: "flood" | "construction" | "car-crash"; ttl: number}[] = [
     {id: "FLOOD", title: t.flag.flood, icon: "flood", ttl: 6},
@@ -130,20 +178,19 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
   ];
 
   return (
-    <Modal visible animationType="slide" transparent={false} onRequestClose={onClose}>
+    <Overlay visible variant="fullScreen" closeLabel={t.common.cancel} onClose={handleRequestClose}>
       <View style={[styles.root, {backgroundColor: theme.background, paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16)}]}>
         {step !== "finished" && (
           <View style={styles.topBar}>
-            {step === 1 ? (
-              <Pressable onPress={onClose} hitSlop={12} style={styles.navAction}>
-                <Text style={[styles.navActionText, {color: theme.muted}]}>✕ {t.common.cancel}</Text>
-              </Pressable>
-            ) : (
-              <Pressable onPress={() => setStep((s) => (s === 3 ? 2 : 1))} hitSlop={12} style={styles.navAction}>
-                <MaterialIcons name="arrow-back" size={20} color={theme.text} />
-                <Text style={[styles.navActionText, {color: theme.text}]}>{t.tutorial.back}</Text>
-              </Pressable>
-            )}
+            <Pressable
+              onPress={step === 1 ? onClose : goBack}
+              hitSlop={12}
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel={step === 1 ? t.common.cancel : t.tutorial.back}
+            >
+              <MaterialIcons name={step === 1 ? "close" : "arrow-back"} size={22} color={theme.text} />
+            </Pressable>
             <Text style={[styles.stepCounter, {color: theme.muted}]}>
               {t.flag.stepOf.replace("{current}", String(step)).replace("{total}", "3")}
             </Text>
@@ -178,18 +225,19 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
               <View style={styles.typeList}>
                 {typeConfig.map((item) => {
                   const selected = type === item.id;
+                  const color = hazardKind(item.id).color;
                   return (
                     <Pressable
                       key={item.id}
                       style={[
                         styles.typeCard,
-                        {backgroundColor: theme.paper, borderColor: selected ? theme.primary : theme.border},
-                        selected && {borderWidth: 2, backgroundColor: `${theme.primary}08`},
+                        {backgroundColor: theme.paper, borderColor: selected ? color : theme.border},
+                        selected && {backgroundColor: `${color}08`},
                       ]}
                       onPress={() => setType(item.id)}
                     >
-                      <View style={[styles.typeIconSlot, {backgroundColor: selected ? `${theme.primary}22` : `${theme.muted}15`}]}>
-                        <MaterialIcons name={item.icon} size={22} color={selected ? theme.primary : theme.muted} />
+                      <View style={[styles.typeIconSlot, {backgroundColor: selected ? `${color}22` : `${theme.muted}15`}]}>
+                        <MaterialIcons name={item.icon} size={22} color={selected ? color : theme.muted} />
                       </View>
                       <View style={styles.typeTextCol}>
                         <Text style={[styles.typeTitle, {color: theme.text}]}>{item.title}</Text>
@@ -197,8 +245,8 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                           {t.flag.activeTtl.replace("{n}", String(item.ttl))}
                         </Text>
                       </View>
-                      <View style={[styles.radioCircle, {borderColor: selected ? theme.primary : theme.border}]}>
-                        {selected ? <View style={[styles.radioInner, {backgroundColor: theme.primary}]} /> : null}
+                      <View style={[styles.radioCircle, {borderColor: selected ? color : theme.border}]}>
+                        {selected ? <View style={[styles.radioInner, {backgroundColor: color}]} /> : null}
                       </View>
                     </Pressable>
                   );
@@ -232,12 +280,12 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                     <StyledLayer
                       type="fill"
                       id="mini-radius-fill-layer"
-                      style={{fillColor: "#ef4444", fillOpacity: 0.3}}
+                      style={{fillColor: kindColor, fillOpacity: 0.3}}
                     />
                     <StyledLayer
                       type="line"
                       id="mini-radius-line-layer"
-                      style={{lineColor: "#dc2626", lineWidth: 2, lineDasharray: [3, 2]}}
+                      style={{lineColor: kindColor, lineWidth: 2, lineDasharray: [3, 2]}}
                     />
                   </GeoJSONSource>
                   <GeoJSONSource
@@ -256,42 +304,56 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                   </GeoJSONSource>
                 </Map>
                 <View style={styles.radiusPill}>
-                  <Text style={styles.radiusPillText}>{radiusMeters} m radius</Text>
+                  <Text style={styles.radiusPillText}>{t.flag.radiusPill.replace("{n}", String(radiusMeters))}</Text>
                 </View>
               </View>
 
               <View style={[styles.sliderCard, {backgroundColor: theme.paper, borderColor: theme.border}]}>
                 <View style={styles.sliderHeader}>
                   <Text style={[styles.sliderTitle, {color: theme.text}]}>{t.flag.detectionRadius}</Text>
-                  <Text style={[styles.sliderVal, {color: theme.primary}]}>{radiusMeters} m</Text>
+                  <Text style={[styles.sliderVal, {color: kindColor}]}>{t.flag.radiusM.replace("{n}", String(radiusMeters))}</Text>
                 </View>
 
                 <View style={styles.presetRow}>
-                  {[100, 250, 500, 1000, 2000].map((preset) => (
+                  {[MIN_RADIUS, 250, DEFAULT_RADIUS, 1000, MAX_RADIUS].map((preset) => (
                     <Pressable
                       key={preset}
                       onPress={() => setRadiusMeters(preset)}
                       style={[
                         styles.presetChip,
-                        {borderColor: radiusMeters === preset ? theme.primary : theme.border},
-                        radiusMeters === preset && {backgroundColor: `${theme.primary}18`},
+                        {borderColor: radiusMeters === preset ? kindColor : theme.border},
+                        radiusMeters === preset && {backgroundColor: `${kindColor}18`},
                       ]}
                     >
-                      <Text style={[styles.presetText, {color: radiusMeters === preset ? theme.primary : theme.text}]}>
-                        {preset >= 1000 ? `${preset / 1000}km` : `${preset}m`}
+                      <Text style={[styles.presetText, {color: radiusMeters === preset ? kindColor : theme.text}]}>
+                        {preset >= 1000
+                          ? t.flag.radiusKm.replace("{n}", String(preset / 1000))
+                          : t.flag.radiusM.replace("{n}", String(preset))}
                       </Text>
                     </Pressable>
                   ))}
                 </View>
 
-                <View style={[styles.trackBg, {width: sliderWidth, backgroundColor: `${theme.muted}33`}]}>
-                  <View style={[styles.trackFill, {width: sliderWidth * progressRatio, backgroundColor: theme.primary}]} />
-                  <View style={[styles.sliderThumb, {left: Math.max(0, sliderWidth * progressRatio - 12), backgroundColor: theme.paper, borderColor: theme.primary}]} />
+                <View
+                  onLayout={(event) => {
+                    trackWidthRef.current = event.nativeEvent.layout.width;
+                    setTrackWidth(event.nativeEvent.layout.width);
+                  }}
+                  style={styles.trackTouch}
+                  accessibilityRole="adjustable"
+                  accessibilityLabel={t.flag.detectionRadius}
+                  accessibilityValue={{min: MIN_RADIUS, max: MAX_RADIUS, now: radiusMeters}}
+                  {...sliderPan.panHandlers}
+                >
+                  <View style={[styles.trackBg, {backgroundColor: `${theme.muted}33`}]}>
+                    <View style={[styles.trackFill, {width: trackWidth * progressRatio, backgroundColor: kindColor}]} />
+                    <View style={[styles.sliderThumb, {left: Math.max(0, trackWidth * progressRatio - 12), backgroundColor: theme.paper, borderColor: kindColor}]} />
+                  </View>
                 </View>
-                <View style={[styles.sliderLabels, {width: sliderWidth}]}>
-                  <Text style={[styles.boundLabel, {color: theme.muted}]}>100 m</Text>
-                  <Text style={[styles.boundLabel, {color: theme.muted}]}>500 m (Default)</Text>
-                  <Text style={[styles.boundLabel, {color: theme.muted}]}>2 km</Text>
+                <View style={styles.sliderLabels}>
+                  <Text style={[styles.boundLabel, {color: theme.muted}]}>{t.flag.radiusM.replace("{n}", "100")}</Text>
+                  <Text style={[styles.boundLabel, {color: theme.muted}]}>{t.flag.defaultRadiusLabel.replace("{n}", String(DEFAULT_RADIUS))}</Text>
+                  <Text style={[styles.boundLabel, {color: theme.muted}]}>{t.flag.radiusKm.replace("{n}", "2")}</Text>
                 </View>
               </View>
             </View>
@@ -306,7 +368,7 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, {color: theme.muted}]}>{t.flag.incidentType}</Text>
                   <Text style={[styles.summaryValue, {color: theme.text}]}>
-                    {type === "FLOOD" ? `${t.flag.flood} Hazard` : type === "OBSTRUCTION" ? `${t.flag.obstruction} Hazard` : `${t.flag.accident} Hazard`}
+                    {t.flag.hazardSummary.replace("{type}", typeLabel)}
                   </Text>
                 </View>
                 <View style={[styles.cardDivider, {backgroundColor: theme.border}]} />
@@ -319,7 +381,7 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                 <View style={[styles.cardDivider, {backgroundColor: theme.border}]} />
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, {color: theme.muted}]}>{t.flag.safetyRadius}</Text>
-                  <Text style={[styles.summaryValue, {color: theme.text}]}>{radiusMeters} meters</Text>
+                  <Text style={[styles.summaryValue, {color: theme.text}]}>{t.flag.metersValue.replace("{n}", String(radiusMeters))}</Text>
                 </View>
                 <View style={[styles.cardDivider, {backgroundColor: theme.border}]} />
                 <View style={styles.summaryRow}>
@@ -332,6 +394,13 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                 <MaterialIcons name="info-outline" size={20} color={theme.primary} style={{marginTop: 2}} />
                 <Text style={[styles.noticeText, {color: theme.text}]}>{t.flag.detourNotice}</Text>
               </View>
+
+              {error ? (
+                <View style={[styles.errorBanner, {backgroundColor: `${theme.danger}12`, borderColor: `${theme.danger}44`}]}>
+                  <MaterialIcons name="error-outline" size={20} color={theme.danger} />
+                  <Text style={[styles.errorText, {color: theme.danger}]}>{error}</Text>
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -346,7 +415,7 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
               <View style={[styles.validBadge, {backgroundColor: `${theme.primary}18`}]}>
                 <MaterialIcons name="hourglass-empty" size={16} color={theme.primary} />
                 <Text style={[styles.validBadgeText, {color: theme.primary}]}>
-                  {t.flag.validFor.replace("{time}", `0${ttlHours - 1}h:59m`)}
+                  {t.flag.validFor.replace("{time}", t.flag.hoursValue.replace("{n}", String(ttlHours)))}
                 </Text>
               </View>
             </View>
@@ -355,25 +424,35 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
 
         <View style={styles.bottomBar}>
           {step === 1 && (
-            <Pressable style={[styles.primaryBtn, {backgroundColor: theme.primary}]} onPress={() => setStep(2)}>
+            <Pressable
+              style={[styles.primaryBtn, {backgroundColor: theme.primary}]}
+              onPress={() => setStep(2)}
+              accessibilityRole="button"
+              accessibilityLabel={t.flag.nextRadius}
+            >
               <Text style={styles.primaryBtnText}>{t.flag.nextRadius}</Text>
             </Pressable>
           )}
 
           {step === 2 && (
             <View style={styles.btnCol}>
-              <Pressable style={[styles.primaryBtn, {backgroundColor: theme.primary}]} onPress={() => setStep(3)}>
+              <Pressable
+                style={[styles.primaryBtn, {backgroundColor: theme.primary}]}
+                onPress={() => setStep(3)}
+                accessibilityRole="button"
+                accessibilityLabel={t.flag.confirmRadius}
+              >
                 <Text style={styles.primaryBtnText}>{t.flag.confirmRadius}</Text>
               </Pressable>
               <Pressable
                 style={[styles.outlineBtn, {borderColor: theme.border}]}
                 onPress={() => {
-                  setRadiusMeters(500);
+                  setRadiusMeters(DEFAULT_RADIUS);
                   setStep(3);
                 }}
               >
                 <Text style={[styles.outlineBtnText, {color: theme.text}]}>
-                  {t.flag.keepDefault.replace("{n}", "500")}
+                  {t.flag.keepDefault.replace("{n}", String(DEFAULT_RADIUS))}
                 </Text>
               </Pressable>
             </View>
@@ -385,6 +464,8 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
                 style={[styles.primaryBtn, {backgroundColor: theme.primary}, busy && styles.disabled]}
                 disabled={busy}
                 onPress={() => void handleFinalSubmit()}
+                accessibilityRole="button"
+                accessibilityLabel={t.flag.submit}
               >
                 {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>{t.flag.submit}</Text>}
               </Pressable>
@@ -395,21 +476,30 @@ export default function HazardReportWizard({t, lang, lat, lng, onClose, onSubmit
           )}
 
           {step === "finished" && (
-            <Pressable style={[styles.primaryBtn, {backgroundColor: theme.primary}]} onPress={handleViewOnMap}>
-              <Text style={styles.primaryBtnText}>{t.flag.viewOnMap}</Text>
-            </Pressable>
+            <View style={styles.btnCol}>
+              <Pressable
+                style={[styles.primaryBtn, {backgroundColor: theme.primary}]}
+                onPress={handleViewOnMap}
+                accessibilityRole="button"
+                accessibilityLabel={t.flag.viewOnMap}
+              >
+                <Text style={styles.primaryBtnText}>{t.flag.viewOnMap}</Text>
+              </Pressable>
+              <Pressable style={styles.cancelTextBtn} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close}>
+                <Text style={[styles.cancelText, {color: theme.muted}]}>{t.common.close}</Text>
+              </Pressable>
+            </View>
           )}
         </View>
       </View>
-    </Modal>
+    </Overlay>
   );
 }
 
 const styles = StyleSheet.create({
   root: {flex: 1},
   topBar: {flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 10},
-  navAction: {flexDirection: "row", alignItems: "center", gap: 6, minHeight: 32},
-  navActionText: {fontSize: 14, fontWeight: "600"},
+  iconBtn: {width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center"},
   stepCounter: {fontSize: 13, fontWeight: "600"},
   scrollContent: {paddingHorizontal: 20, paddingBottom: 24},
   stepContainer: {gap: 16, paddingTop: 8},
@@ -440,10 +530,11 @@ const styles = StyleSheet.create({
   presetRow: {flexDirection: "row", gap: 8, width: "100%", justifyContent: "space-between"},
   presetChip: {flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: "center"},
   presetText: {fontSize: 12, fontWeight: "700"},
-  trackBg: {height: 6, borderRadius: 3, position: "relative", marginVertical: 8},
+  trackTouch: {height: 32, width: "100%", justifyContent: "center"},
+  trackBg: {height: 6, borderRadius: 3, position: "relative", width: "100%"},
   trackFill: {height: 6, borderRadius: 3},
   sliderThumb: {position: "absolute", top: -9, width: 24, height: 24, borderRadius: 12, borderWidth: 3},
-  sliderLabels: {flexDirection: "row", justifyContent: "space-between"},
+  sliderLabels: {flexDirection: "row", justifyContent: "space-between", width: "100%"},
   boundLabel: {fontSize: 11, fontWeight: "600"},
   summaryCard: {padding: 18, borderRadius: 18, borderWidth: 1, gap: 12},
   summaryRow: {flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12},
@@ -453,6 +544,8 @@ const styles = StyleSheet.create({
   cardDivider: {height: 1, width: "100%"},
   noticeBox: {flexDirection: "row", padding: 14, borderRadius: 14, borderWidth: 1, gap: 10},
   noticeText: {flex: 1, fontSize: 13, lineHeight: 18},
+  errorBanner: {flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 12, borderWidth: 1, gap: 8},
+  errorText: {flex: 1, fontSize: 13, fontWeight: "600"},
   finishedContainer: {alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 16},
   successCircle: {width: 90, height: 90, borderRadius: 45, alignItems: "center", justifyContent: "center", marginBottom: 8},
   finishTitle: {fontSize: 24, fontWeight: "800", textAlign: "center"},

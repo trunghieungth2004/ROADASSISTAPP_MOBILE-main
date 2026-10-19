@@ -17,7 +17,6 @@ import StatusRow from "../components/StatusRow";
 import {Fab} from "../components/Fab";
 import {snackAboveTabs} from "../components/snackOffset";
 import {isStaleForRefresh} from "../components/feedback";
-import CommunityVerificationSheet from "../components/CommunityVerificationSheet";
 import {ensurePushConfigured, subscribeHazardPush, type HazardPushData} from "../services/push";
 import {useAuth} from "../context/AuthContext";
 import {useStrings} from "../context/LanguageContext";
@@ -194,18 +193,35 @@ export default function HazardScreen() {
         <Snack message={snack} severity="confirm" bottom={snackAboveTabs(insets.bottom)} accentColor={theme.primary} onHide={() => setSnack(null)} />
       )}
       {selected ? (
-        <CommunityVerificationSheet
-          t={t}
-          flag={selected}
-          isOwn={uid != null && selected.reporterId === uid}
-          voted={votedIds.has(selected.id)}
-          denied={deniedIds.has(selected.id)}
-          busy={mine.busyId !== null}
-          onConfirm={(id) => void onConfirmFlag(id)}
-          onDeny={(id) => void onDenyFlag(id)}
-          onRemove={(id) => void onRemove(id)}
+        <Overlay
+          visible
+          variant="dialog"
+          title={flagTypeLabel(selected.type, t)}
+          leading={<MaterialIcons name={hazardKind(selected.type).icon} size={22} color={hazardKind(selected.type).color} />}
+          right={
+            <View style={[styles.statusChip, {backgroundColor: flagStatusColor(selected.status)}]}>
+              <Text style={styles.statusText}>{flagStatusLabel(selected.status, t)}</Text>
+            </View>
+          }
+          closeLabel={t.common.cancel}
           onClose={() => setSelected(null)}
-        />
+          actions={flagOverlayActions(
+            selected.id,
+            selected.status,
+            uid != null && selected.reporterId === uid,
+            votedIds.has(selected.id),
+            deniedIds.has(selected.id),
+            mine.busyId !== null,
+            {confirm: t.flag.confirm, deny: t.flag.deny, remove: t.flag.remove},
+            {onConfirm: (id) => void onConfirmFlag(id), onDeny: (id) => void onDenyFlag(id), onRemove: (id) => void onRemove(id)},
+          )}
+        >
+          <FlagDetailSheet
+            t={t}
+            flag={selected}
+            isOwn={uid != null && selected.reporterId === uid}
+          />
+        </Overlay>
       ) : null}
     </ScreenContainer>
   );
