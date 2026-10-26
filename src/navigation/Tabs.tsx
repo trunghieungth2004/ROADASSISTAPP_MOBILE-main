@@ -1,33 +1,34 @@
-import {useEffect, useState, type ReactNode} from "react";
-import {ActivityIndicator, AppState, Platform, Pressable, StyleSheet, View, useColorScheme} from "react-native";
-import {BlurView} from "expo-blur";
+import { useEffect, useState, type ReactNode } from "react";
+import { ActivityIndicator, AppState, Platform, Pressable, StyleSheet, View, useColorScheme } from "react-native";
+import { BlurView } from "expo-blur";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {AppText as Text} from "../components/AppText";
-import {createBottomTabNavigator, type BottomTabBarProps} from "@react-navigation/bottom-tabs";
-import {MaterialCommunityIcons, MaterialIcons} from "@expo/vector-icons";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {toMessage} from "../api/client";
-import {useAuth} from "../context/AuthContext";
-import {useProfile} from "../context/ProfileContext";
-import {useStrings} from "../context/LanguageContext";
-import {darkTheme, lightTheme} from "../theme";
-import {GlassTargetProvider} from "../components/GlassSurface";
-import {TutorialProvider, useTutorial} from "../context/TutorialContext";
+import { AppText as Text } from "../components/AppText";
+import { createBottomTabNavigator, type BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { toMessage } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
+import { useStrings } from "../context/LanguageContext";
+import { darkTheme, lightTheme } from "../theme";
+import { GlassTargetProvider } from "../components/GlassSurface";
+import { TutorialProvider, useTutorial } from "../context/TutorialContext";
 import TutorialOverlay from "../components/TutorialOverlay";
 import LoginScreen from "../screens/LoginScreen";
-import OnboardingScreen, {type ShopDraft, type TowDraft} from "../screens/OnboardingScreen";
+import OnboardingScreen, { type ShopDraft, type TowDraft } from "../screens/OnboardingScreen";
 import PermissionGateScreen from "../screens/PermissionGateScreen";
-import {getPermissionStates, openAppSettings, openBatterySettings, requestBackgroundLocationPermission, requestNotificationPermission, type AppPermissionStates} from "../services/permissions";
-import {syncPushToken} from "../services/push";
-import {normalizeTowPlate, parseTowWidth, validateTowDraft} from "../services/towPlates";
-import {createProvider} from "../api/providers";
+import { getPermissionStates, openAppSettings, openBatterySettings, requestBackgroundLocationPermission, requestNotificationPermission, type AppPermissionStates } from "../services/permissions";
+import { syncPushToken } from "../services/push";
+import { normalizeTowPlate, parseTowWidth, validateTowDraft } from "../services/towPlates";
+import { createProvider } from "../api/providers";
 import RouteScreen from "../screens/RouteScreen";
 import HazardScreen from "../screens/HazardScreen";
 import AssistScreen from "../screens/AssistScreen";
 import VehicleScreen from "../screens/VehicleScreen";
 import MoreScreen from "../screens/MoreScreen";
+import SubscriptionScreen from '../screens/SubscriptionScreen';
 const Tab = createBottomTabNavigator();
-type IconProps = {color: string; size: number};
+type IconProps = { color: string; size: number };
 const TAB_ICONS: Record<string, (props: IconProps) => ReactNode> = {
   Route: (p) => <MaterialIcons name="route" {...p} />,
   Hazards: (p) => <MaterialIcons name="warning-amber" {...p} />,
@@ -35,7 +36,23 @@ const TAB_ICONS: Record<string, (props: IconProps) => ReactNode> = {
   Vehicle: (p) => <MaterialCommunityIcons name="motorbike" {...p} />,
   More: (p) => <MaterialIcons name="more-horiz" {...p} />,
 };
-function TabBar({state, descriptors, navigation}: BottomTabBarProps) {
+<Tab.Navigator tabBar={(props) => <TabBar {...props} />}>
+  <Tab.Screen name="Route" component={RouteScreen} />
+  <Tab.Screen name="Hazards" component={HazardScreen} />
+  <Tab.Screen name="Assist" component={AssistScreen} />
+  <Tab.Screen name="Vehicle" component={VehicleScreen} />
+  <Tab.Screen name="More" component={MoreScreen} />
+  <Tab.Screen
+    name="Subscription"
+    component={SubscriptionScreen}
+    options={{
+      title: 'Mua gói dịch vụ',
+      headerShown: true,
+      tabBarItemStyle: { display: 'none' },
+    }}
+  />
+</Tab.Navigator>
+function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
@@ -43,33 +60,35 @@ function TabBar({state, descriptors, navigation}: BottomTabBarProps) {
   useEffect(() => {
     tutorial.setTabNavigation((tab) => navigation.navigate(tab));
   }, [navigation, tutorial.setTabNavigation]);
-  const focusedOptions = descriptors[state.routes[state.index].key]?.options as {tabBarStyle?: {display?: string}} | undefined;
+  const focusedOptions = descriptors[state.routes[state.index].key]?.options as { tabBarStyle?: { display?: string } } | undefined;
   if (focusedOptions?.tabBarStyle?.display === "none") return null;
-  const items = state.routes.map((route, index) => {
-    const focused = state.index === index;
-    const options = descriptors[route.key].options;
-    const color = focused ? theme.primary : theme.tabInactive;
-    const onPress = () => {
-      const event = navigation.emit({type: "tabPress", target: route.key, canPreventDefault: true});
-      if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
-    };
-    const tutorialTarget = route.name === "Route" ? "routeTab"
-      : route.name === "Hazards" ? "hazardsTab"
-        : route.name === "Assist" ? "assistTab"
-          : route.name === "More" ? "moreTab"
-            : undefined;
-    return <Pressable
-      key={route.key}
-      ref={tutorialTarget ? tutorial.getTargetRef(tutorialTarget) : undefined}
-      accessibilityRole="tab"
-      accessibilityState={{selected: focused}}
-      onPress={onPress}
-      style={styles.tabItem}
-    >
-      <View style={[styles.iconSlot, focused && {backgroundColor: `${theme.primary}33`}]}>{(TAB_ICONS[route.name] ?? (() => null))({color, size: 22})}</View>
-      <Text numberOfLines={1} style={[styles.tabLabel, {color}]}>{options.title ?? route.name}</Text>
-    </Pressable>;
-  });
+  const items = state.routes
+    .filter((r) => r.name !== 'Subscription')
+    .map((route, index) => {
+      const focused = state.index === index;
+      const options = descriptors[route.key].options;
+      const color = focused ? theme.primary : theme.tabInactive;
+      const onPress = () => {
+        const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+        if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+      };
+      const tutorialTarget = route.name === "Route" ? "routeTab"
+        : route.name === "Hazards" ? "hazardsTab"
+          : route.name === "Assist" ? "assistTab"
+            : route.name === "More" ? "moreTab"
+              : undefined;
+      return <Pressable
+        key={route.key}
+        ref={tutorialTarget ? tutorial.getTargetRef(tutorialTarget) : undefined}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: focused }}
+        onPress={onPress}
+        style={styles.tabItem}
+      >
+        <View style={[styles.iconSlot, focused && { backgroundColor: `${theme.primary}33` }]}>{(TAB_ICONS[route.name] ?? (() => null))({ color, size: 22 })}</View>
+        <Text numberOfLines={1} style={[styles.tabLabel, { color }]}>{options.title ?? route.name}</Text>
+      </Pressable>;
+    });
   const android = Platform.OS === "android";
   const bg = scheme === "dark" ? "rgba(15,23,42,0.90)" : "rgba(255,255,255,0.90)";
   const borderTop = scheme === "dark" ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)";
@@ -80,7 +99,7 @@ function TabBar({state, descriptors, navigation}: BottomTabBarProps) {
       borderTopColor: borderTop,
       paddingBottom: insets.bottom,
       shadowColor: "#000",
-      shadowOffset: {width: 0, height: -4},
+      shadowOffset: { width: 0, height: -4 },
       shadowOpacity: 0.08,
       shadowRadius: 12,
       elevation: 10,
@@ -98,24 +117,24 @@ function TabBar({state, descriptors, navigation}: BottomTabBarProps) {
   );
 }
 function UnsupportedRole() {
-  const {t} = useStrings();
-  const {signOut} = useAuth();
-  const {refresh, loading} = useProfile();
+  const { t } = useStrings();
+  const { signOut } = useAuth();
+  const { refresh, loading } = useProfile();
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   return (
-    <View style={[styles.center, {backgroundColor: theme.background}]}>
-      <Text style={{color: theme.text}}>{t.roles.unsupported}</Text>
-      <Pressable style={[styles.primary, {backgroundColor: theme.primary}, loading && styles.disabled]} disabled={loading} onPress={() => void refresh()}>
+    <View style={[styles.center, { backgroundColor: theme.background }]}>
+      <Text style={{ color: theme.text }}>{t.roles.unsupported}</Text>
+      <Pressable style={[styles.primary, { backgroundColor: theme.primary }, loading && styles.disabled]} disabled={loading} onPress={() => void refresh()}>
         <Text style={styles.primaryText}>{t.common.retry}</Text>
       </Pressable>
       <Pressable style={styles.primary} onPress={() => void signOut()}><Text style={styles.primaryText}>{t.more.signOut}</Text></Pressable>
     </View>
   );
 }
-function PermissionGate({onDone}: {onDone: () => void}) {
-  const {t} = useStrings();
-  const {token, uid} = useAuth();
+function PermissionGate({ onDone }: { onDone: () => void }) {
+  const { t } = useStrings();
+  const { token, uid } = useAuth();
   const [states, setStates] = useState<AppPermissionStates | null>(null);
   const [busy, setBusy] = useState(false);
   const [grantError, setGrantError] = useState<string | null>(null);
@@ -135,7 +154,7 @@ function PermissionGate({onDone}: {onDone: () => void}) {
     void AsyncStorage.setItem("roadassist.permGate", "done").catch(() => undefined);
     onDone();
   };
-  const grant = (fn: () => Promise<{granted: boolean; canAskAgain: boolean}>, register: boolean): void => {
+  const grant = (fn: () => Promise<{ granted: boolean; canAskAgain: boolean }>, register: boolean): void => {
     if (busy) return;
     setBusy(true);
     setGrantError(null);
@@ -170,30 +189,30 @@ function PermissionGate({onDone}: {onDone: () => void}) {
   );
 }
 function OnboardingGate() {
-  const {t, lang} = useStrings();
-  const {token} = useAuth();
-  const {markOnboarded, refresh} = useProfile();
+  const { t, lang } = useStrings();
+  const { token } = useAuth();
+  const { markOnboarded, refresh } = useProfile();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function finishGate(services: string[], shop: ShopDraft | null, tow: TowDraft | null) {
     setBusy(true); setError(null);
     try {
       if (tow) {
-        const bad = validateTowDraft({plate: tow.plate, vehicleType: tow.vehicleType, width: tow.width});
+        const bad = validateTowDraft({ plate: tow.plate, vehicleType: tow.vehicleType, width: tow.width });
         if (bad) throw new Error(t.tow.invalid);
       }
       for (const service of services) { await markOnboarded(service); }
       if (token) {
         if (shop) {
           try {
-            await createProvider({kind: "SHOP", name: shop.name.trim(), lat: shop.lat, lng: shop.lng, ...(shop.label ? {label: shop.label} : {})}, token);
+            await createProvider({ kind: "SHOP", name: shop.name.trim(), lat: shop.lat, lng: shop.lng, ...(shop.label ? { label: shop.label } : {}) }, token);
           } catch (err) {
             throw new Error(`${t.provider.createShopFailed} ${toMessage(err)}`);
           }
         }
         if (tow) {
           try {
-            await createProvider({kind: "TOW", name: tow.name.trim(), lat: tow.lat, lng: tow.lng, plate: normalizeTowPlate(tow.plate), vehicleType: tow.vehicleType, vehicleWidth: parseTowWidth(tow.width) ?? undefined}, token);
+            await createProvider({ kind: "TOW", name: tow.name.trim(), lat: tow.lat, lng: tow.lng, plate: normalizeTowPlate(tow.plate), vehicleType: tow.vehicleType, vehicleWidth: parseTowWidth(tow.width) ?? undefined }, token);
           } catch (err) {
             throw new Error(`${t.provider.createTowFailed} ${toMessage(err)}`);
           }
@@ -206,9 +225,9 @@ function OnboardingGate() {
   return <OnboardingScreen t={t} lang={lang} token={token} busy={busy} error={error} onFinish={(services, shop, tow) => void finishGate(services, shop, tow)} onSkip={() => void skipGate()} />;
 }
 export default function Tabs() {
-  const {t} = useStrings();
-  const {token, loaded} = useAuth();
-  const {loading, roleChosen, isRider, bundle} = useProfile();
+  const { t } = useStrings();
+  const { token, loaded } = useAuth();
+  const { loading, roleChosen, isRider, bundle } = useProfile();
   const [permsDone, setPermsDone] = useState(false);
   useEffect(() => {
     if (!token) {
@@ -230,12 +249,21 @@ export default function Tabs() {
     <TutorialProvider>
       <GlassTargetProvider>
         <View style={styles.navigator}>
-          <Tab.Navigator initialRouteName="Route" tabBar={(props) => <TabBar {...props} />} screenOptions={{headerShown: true, headerStyle: {backgroundColor: theme.paper}, headerTintColor: theme.text, tabBarStyle: {position: "absolute"}}}>
-            <Tab.Screen name="Route" component={RouteScreen} options={{title: t.tabs.route}} />
-            <Tab.Screen name="Hazards" component={HazardScreen} options={{title: t.tabs.hazards}} />
-            <Tab.Screen name="Assist" component={AssistScreen} options={{title: t.tabs.dispatch}} />
-            <Tab.Screen name="Vehicle" component={VehicleScreen} options={{title: t.tabs.vehicle}} />
-            <Tab.Screen name="More" component={MoreScreen} options={{title: t.tabs.more}} />
+          <Tab.Navigator initialRouteName="Route" tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: true, headerStyle: { backgroundColor: theme.paper }, headerTintColor: theme.text, tabBarStyle: { position: "absolute" } }}>
+            <Tab.Screen name="Route" component={RouteScreen} options={{ title: t.tabs.route }} />
+            <Tab.Screen name="Hazards" component={HazardScreen} options={{ title: t.tabs.hazards }} />
+            <Tab.Screen name="Assist" component={AssistScreen} options={{ title: t.tabs.dispatch }} />
+            <Tab.Screen name="Vehicle" component={VehicleScreen} options={{ title: t.tabs.vehicle }} />
+            <Tab.Screen name="More" component={MoreScreen} options={{ title: t.tabs.more }} />
+            <Tab.Screen
+              name="Subscription"
+              component={SubscriptionScreen}
+              options={{
+                title: 'Nâng cấp VIP',
+                headerShown: true,
+                tabBarButton: () => null,
+              }}
+            />
           </Tab.Navigator>
           <TutorialOverlay />
         </View>
@@ -243,4 +271,4 @@ export default function Tabs() {
     </TutorialProvider>
   );
 }
-const styles = StyleSheet.create({navigator: {flex: 1}, center: {flex: 1, alignItems: "center", justifyContent: "center", gap: 12}, primary: {borderRadius: 8, padding: 12}, disabled: {opacity: 0.6}, primaryText: {color: "#fff", fontWeight: "700"}, tabBar: {position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", borderTopWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 6}, tabItem: {flex: 1, alignItems: "center", justifyContent: "center", minHeight: 58, gap: 3}, iconSlot: {width: 48, height: 32, borderRadius: 999, overflow: "hidden", alignItems: "center", justifyContent: "center"}, tabLabel: {fontSize: 11, fontWeight: "600", maxWidth: "100%"}});
+const styles = StyleSheet.create({ navigator: { flex: 1 }, center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 }, primary: { borderRadius: 8, padding: 12 }, disabled: { opacity: 0.6 }, primaryText: { color: "#fff", fontWeight: "700" }, tabBar: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", borderTopWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 6 }, tabItem: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 58, gap: 3 }, iconSlot: { width: 48, height: 32, borderRadius: 999, overflow: "hidden", alignItems: "center", justifyContent: "center" }, tabLabel: { fontSize: 11, fontWeight: "600", maxWidth: "100%" } });

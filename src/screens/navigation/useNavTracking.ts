@@ -1,15 +1,15 @@
-import {useEffect, useMemo, useRef, useState, type MutableRefObject} from "react";
-import {AppState} from "react-native";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { AppState } from "react-native";
 import * as Location from "expo-location";
 import * as Speech from "expo-speech";
-import {type CameraRef} from "@maplibre/maplibre-react-native";
-import {findRoute, isFlagWarning, isHazardZone, isWidthBlock, type FlagWarning, type RouteOption} from "../../api/routes";
-import {reverseLabel} from "../../api/places";
-import {toMessage} from "../../api/client";
-import {maneuverSteps} from "../../services/maneuvers";
-import {readBgFix, startBgNav, stopBgNav} from "../../services/bgNav";
-import {notifyHazardHeadsUp} from "../../services/push";
-import {playEventSound, unloadEventSounds} from "../../services/sound";
+import { type CameraRef } from "@maplibre/maplibre-react-native";
+import { findRoute, isFlagWarning, isHazardZone, isWidthBlock, type FlagWarning, type RouteOption } from "../../api/routes";
+import { reverseLabel } from "../../api/places";
+import { toMessage } from "../../api/client";
+import { maneuverSteps } from "../../services/maneuvers";
+import { readBgFix, startBgNav, stopBgNav } from "../../services/bgNav";
+import { notifyHazardHeadsUp } from "../../services/push";
+import { playEventSound, unloadEventSounds } from "../../services/sound";
 import {
   ANNOUNCE_CLOSE_METERS,
   ANNOUNCE_NEAR_METERS,
@@ -21,26 +21,26 @@ import {
   windowAround,
   type RouteProgress,
 } from "../../services/navigation";
-import type {Strings} from "../../i18n/en";
-import {FOLLOW_MIN_MOVE_M, FOLLOW_PITCH, FOLLOW_ZOOM, courseBetween, distBetween, splitRoute} from "./navUtils";
+import type { Strings } from "../../i18n/en";
+import { FOLLOW_MIN_MOVE_M, FOLLOW_PITCH, FOLLOW_ZOOM, courseBetween, distBetween, splitRoute } from "./navUtils";
 
 export type NavTrackingOpts = {
   token: string;
   lang: string;
   t: Strings;
-  dest: {lat: number; lng: number};
-  stops: {lat: number; lng: number}[];
+  dest: { lat: number; lng: number };
+  stops: { lat: number; lng: number }[];
   width?: number;
   vehicleType?: string;
   initialRoute: RouteOption;
-  seed: {lat: number; lng: number};
+  seed: { lat: number; lng: number };
   speak: (text: string) => void;
   resolveVoice: () => Promise<boolean>;
 };
 
 export function useNavTracking(opts: NavTrackingOpts): {
   route: RouteOption;
-  pos: {lat: number; lng: number} | null;
+  pos: { lat: number; lng: number } | null;
   progress: RouteProgress | null;
   following: boolean;
   arrived: boolean;
@@ -53,15 +53,15 @@ export function useNavTracking(opts: NavTrackingOpts): {
   stepProg: number[];
   arrowRotate: number;
   cameraRef: MutableRefObject<CameraRef | null>;
-  next: {kind: string; street: string | undefined; toGo: number} | null;
+  next: { kind: string; street: string | undefined; toGo: number } | null;
   speedKmh: number | null;
   onRegionChanging: (e: unknown) => void;
   onRecenter: () => void;
   rerouteForConfirm: () => Promise<boolean>;
-  refreshRouteQuiet: () => Promise<{changed: boolean; warnings: FlagWarning[]} | null>;
+  refreshRouteQuiet: () => Promise<{ changed: boolean; warnings: FlagWarning[] } | null>;
   previewStep: (idx: number) => void;
-  preview: {at: [number, number]; highlight: [number, number][]; bearing: number} | null;
-  hazardFocus: {at: [number, number]; highlight: [number, number][]; idx: number} | null;
+  preview: { at: [number, number]; highlight: [number, number][]; bearing: number } | null;
+  hazardFocus: { at: [number, number]; highlight: [number, number][]; idx: number } | null;
   hazardCount: number;
   flagWarnings: FlagWarning[];
   cycleHazard: () => void;
@@ -70,27 +70,27 @@ export function useNavTracking(opts: NavTrackingOpts): {
   traveled: [number, number][];
   remaining: [number, number][];
 } {
-  const {t, lang, token, dest, stops, width, vehicleType, initialRoute, seed, speak, resolveVoice} = opts;
+  const { t, lang, token, dest, stops, width, vehicleType, initialRoute, seed, speak, resolveVoice } = opts;
   const [route, setRoute] = useState<RouteOption>(initialRoute);
-  const [pos, setPos] = useState<{lat: number; lng: number} | null>(null);
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [progress, setProgress] = useState<RouteProgress | null>(null);
   const [following, setFollowing] = useState(true);
-  const [arrived, setArrived] = useState(false);  const [rerouting, setRerouting] = useState(false);
+  const [arrived, setArrived] = useState(false); const [rerouting, setRerouting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [streets, setStreets] = useState<Record<number, string>>({});
   const [arrowRotate, setArrowRotate] = useState(0);
   const [speedKmh, setSpeedKmh] = useState<number | null>(null);
-  const lastAcceptedRef = useRef<{lat: number; lng: number; ts: number} | null>(null);
+  const lastAcceptedRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
   const speedSamplesRef = useRef<number[]>([]);
   const speedRef = useRef(0);
   const GPS_DISPLAY_MAX_M = 65;
   const GPS_ROUTE_MAX_M = 40;
   const GPS_MAX_SPEED_MPS = 60;
   const GPS_SNAP_METERS = 25;
-  const [preview, setPreview] = useState<{at: [number, number]; highlight: [number, number][]; bearing: number} | null>(null);
-  const [hazardFocus, setHazardFocus] = useState<{at: [number, number]; highlight: [number, number][]; idx: number} | null>(null);
-  const hazardFocusRef = useRef<{at: [number, number]; highlight: [number, number][]; idx: number} | null>(null);
+  const [preview, setPreview] = useState<{ at: [number, number]; highlight: [number, number][]; bearing: number } | null>(null);
+  const [hazardFocus, setHazardFocus] = useState<{ at: [number, number]; highlight: [number, number][]; idx: number } | null>(null);
+  const hazardFocusRef = useRef<{ at: [number, number]; highlight: [number, number][]; idx: number } | null>(null);
   const [recentering, setRecentering] = useState(false);
   const routeRef = useRef(initialRoute);
   const reroutingRef = useRef(false);
@@ -98,7 +98,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
   const offRef = useRef(0);
   const lastRerouteRef = useRef(0);
   const seqRef = useRef(0);
-  const announcedRef = useRef({idx: -1, tier: 0});
+  const announcedRef = useRef({ idx: -1, tier: 0 });
   const alertedRef = useRef(new Set<string>());
   const streetPendingRef = useRef(new Set<number>());
   const streetsRef = useRef<Record<number, string>>({});
@@ -108,15 +108,15 @@ export function useNavTracking(opts: NavTrackingOpts): {
   const lastCmdRef = useRef(0);
   const seedPendingRef = useRef(false);
   const seedFrameRef = useRef<(() => void) | null>(null);
-  const appSubRef = useRef<{remove: () => void} | null>(null);
+  const appSubRef = useRef<{ remove: () => void } | null>(null);
   const recenterUntilRef = useRef(0);
   const lastBearingRef = useRef<number | null>(null);
   const lastBearCmdRef = useRef(0);
-  const arrowRef = useRef<{value: number; ts: number} | null>(null);
+  const arrowRef = useRef<{ value: number; ts: number } | null>(null);
   const firstFixRef = useRef(true);
-  const lastFixRef = useRef<{lat: number; lng: number} | null>(null);
+  const lastFixRef = useRef<{ lat: number; lng: number } | null>(null);
   const courseRef = useRef(0);
-  const headingRef = useRef<{value: number; ts: number} | null>(null);
+  const headingRef = useRef<{ value: number; ts: number } | null>(null);
   const zoomRef = useRef(FOLLOW_ZOOM);
 
   const steps = useMemo(() => maneuverSteps(route), [route]);
@@ -172,7 +172,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
     speak(t.nav.rerouting);
     try {
       const res = await findRoute(
-        {originLat: lat, originLng: lng, destLat: dest.lat, destLng: dest.lng, stops, width, vehicleType},
+        { originLat: lat, originLng: lng, destLat: dest.lat, destLng: dest.lng, stops, width, vehicleType },
         token,
       );
       if (seqRef.current !== id) return false;
@@ -185,7 +185,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
       hazardFocusRef.current = null;
       setHazardFocus(null);
       offRef.current = 0;
-      announcedRef.current = {idx: -1, tier: 0};
+      announcedRef.current = { idx: -1, tier: 0 };
       alertedRef.current = new Set<string>();
       streetPendingRef.current = new Set<number>();
       streetsRef.current = {};
@@ -208,13 +208,13 @@ export function useNavTracking(opts: NavTrackingOpts): {
     return reroute(p.lat, p.lng, true);
   };
 
-  const refreshRouteQuiet = async (): Promise<{changed: boolean; warnings: FlagWarning[]} | null> => {
+  const refreshRouteQuiet = async (): Promise<{ changed: boolean; warnings: FlagWarning[] } | null> => {
     const p = lastFixRef.current;
     if (!p || reroutingRef.current || arrivedRef.current) return null;
     const id = (seqRef.current += 1);
     try {
       const res = await findRoute(
-        {originLat: p.lat, originLng: p.lng, destLat: dest.lat, destLng: dest.lng, stops, width, vehicleType},
+        { originLat: p.lat, originLng: p.lng, destLat: dest.lat, destLng: dest.lng, stops, width, vehicleType },
         token,
       );
       if (seqRef.current !== id) return null;
@@ -227,7 +227,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
       hazardFocusRef.current = null;
       setHazardFocus(null);
       offRef.current = 0;
-      return {changed, warnings: (nr.warnings ?? []).filter(isFlagWarning)};
+      return { changed, warnings: (nr.warnings ?? []).filter(isFlagWarning) };
     } catch {
       return null;
     }
@@ -238,10 +238,16 @@ export function useNavTracking(opts: NavTrackingOpts): {
     let headSub: Location.LocationSubscription | null = null;
     let alive = true;
     const seedRoute = routeRef.current;
-    const seedProg = projectOntoRoute(seed.lat, seed.lng, seedRoute.geometry.coordinates);
-    lastFixRef.current = {lat: seed.lat, lng: seed.lng};
-    setPos({lat: seed.lat, lng: seed.lng});
-    setProgress(seedProg);
+    const seedLat = seed?.lat ?? 10.8454;
+    const seedLng = seed?.lng ?? 106.7946;
+
+    const seedProg = seedRoute?.geometry?.coordinates
+      ? projectOntoRoute(seedLat, seedLng, seedRoute.geometry.coordinates)
+      : 0;
+
+    lastFixRef.current = { lat: seedLat, lng: seedLng };
+    setPos({ lat: seedLat, lng: seedLng });
+    setProgress(seedProg as any);
     seedPendingRef.current = true;
     const fireSeedFrame = (): void => {
       if (!alive || !seedPendingRef.current || !cameraRef.current) return;
@@ -251,7 +257,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
       const b = pickBearing();
       lastBearingRef.current = b;
       void cameraRef.current.setStop({
-        center: [seed.lng, seed.lat],
+        center: [seedLng, seedLat],
         zoom: FOLLOW_ZOOM,
         bearing: b,
         pitch: FOLLOW_PITCH,
@@ -273,11 +279,11 @@ export function useNavTracking(opts: NavTrackingOpts): {
         headSub = await Location.watchHeadingAsync((h) => {
           if (!alive) return;
           const v = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
-          headingRef.current = {value: v, ts: Date.now()};
+          headingRef.current = { value: v, ts: Date.now() };
           const now = Date.now();
           const lastArrow = arrowRef.current;
           if (!lastArrow || now - lastArrow.ts >= ARROW_MIN_INTERVAL_MS || Math.abs(wrapDeg(v - lastArrow.value)) >= ARROW_MIN_CHANGE_DEG) {
-            arrowRef.current = {value: v, ts: now};
+            arrowRef.current = { value: v, ts: now };
             setArrowRotate(v);
           }
           if (followingRef.current && now >= recenterUntilRef.current && lastFixRef.current) {
@@ -298,7 +304,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
         headSub = null;
       }
       try {
-        const {status} = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (!alive) return;
         if (status !== "granted") {
           setError(t.nav.locationDenied);
@@ -309,20 +315,20 @@ export function useNavTracking(opts: NavTrackingOpts): {
           if (alive && last) {
             const r = routeRef.current;
             const p = projectOntoRoute(last.coords.latitude, last.coords.longitude, r.geometry.coordinates);
-            setPos({lat: last.coords.latitude, lng: last.coords.longitude});
+            setPos({ lat: last.coords.latitude, lng: last.coords.longitude });
             setProgress(p);
           }
-        } catch {}
+        } catch { }
         const handleFix = (lat: number, lng: number, acc: number, rawSpeed: number | null): void => {
           if (acc > GPS_DISPLAY_MAX_M) return;
           const now = Date.now();
           const prevAccepted = lastAcceptedRef.current;
           if (prevAccepted) {
             const dt = Math.max(1, now - prevAccepted.ts) / 1000;
-            const implied = distBetween(prevAccepted, {lat, lng}) / dt;
+            const implied = distBetween(prevAccepted, { lat, lng }) / dt;
             if (implied > GPS_MAX_SPEED_MPS) return;
           }
-          lastAcceptedRef.current = {lat, lng, ts: now};
+          lastAcceptedRef.current = { lat, lng, ts: now };
           speedRef.current = rawSpeed ?? 0;
           if (rawSpeed !== null) {
             const samples = [...speedSamplesRef.current, rawSpeed].slice(-3);
@@ -334,13 +340,13 @@ export function useNavTracking(opts: NavTrackingOpts): {
           }
           const r = routeRef.current;
           const p = projectOntoRoute(lat, lng, r.geometry.coordinates);
-          const shown = p.distToRoute <= GPS_SNAP_METERS ? {lat: p.point[1], lng: p.point[0]} : {lat, lng};
+          const shown = p.distToRoute <= GPS_SNAP_METERS ? { lat: p.point[1], lng: p.point[0] } : { lat, lng };
           setPos(shown);
           setProgress(p);
           const prev = lastFixRef.current;
-          lastFixRef.current = {lat, lng};
-          if (prev && distBetween(prev, {lat, lng}) >= FOLLOW_MIN_MOVE_M) {
-            courseRef.current = courseBetween(prev, {lat, lng});
+          lastFixRef.current = { lat, lng };
+          if (prev && distBetween(prev, { lat, lng }) >= FOLLOW_MIN_MOVE_M) {
+            courseRef.current = courseBetween(prev, { lat, lng });
           }
           const bearing = pickBearing();
           setArrowRotate(bearing);
@@ -358,8 +364,8 @@ export function useNavTracking(opts: NavTrackingOpts): {
               if (driveBearing) lastBearingRef.current = bearing;
               void cameraRef.current?.setStop({
                 center: [shown.lng, shown.lat],
-                ...(first ? {zoom: FOLLOW_ZOOM, pitch: FOLLOW_PITCH} : {}),
-                ...(driveBearing ? {bearing} : {}),
+                ...(first ? { zoom: FOLLOW_ZOOM, pitch: FOLLOW_PITCH } : {}),
+                ...(driveBearing ? { bearing } : {}),
                 duration: first ? 0 : 300,
               });
             }
@@ -402,11 +408,11 @@ export function useNavTracking(opts: NavTrackingOpts): {
               const nearDue = toGo <= ANNOUNCE_NEAR_METERS || etaSec <= ANNOUNCE_NEAR_SEC;
               const closeDue = toGo <= ANNOUNCE_CLOSE_METERS || etaSec <= ANNOUNCE_CLOSE_SEC;
               if (closeDue && !(a.idx === ni && a.tier >= 2)) {
-                announcedRef.current = {idx: ni, tier: 2};
+                announcedRef.current = { idx: ni, tier: 2 };
                 const street = steps[ni].street ?? streetsRef.current[ni];
                 speak(`${turnText(kind)}${street ? `, ${street}` : ""}, ${t.nav.inDistance.replace("{d}", distText(toGo))}`);
               } else if (nearDue && !(a.idx === ni && a.tier >= 1)) {
-                announcedRef.current = {idx: ni, tier: 1};
+                announcedRef.current = { idx: ni, tier: 1 };
                 const street = steps[ni].street ?? streetsRef.current[ni];
                 speak(`${turnText(kind)}${street ? `, ${street}` : ""}, ${t.nav.inDistance.replace("{d}", distText(toGo))}`);
               }
@@ -415,7 +421,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
                 const at = steps[ni].at;
                 void reverseLabel(at[1], at[0], lang).then((label) => {
                   if (!alive) return;
-                  streetsRef.current = {...streetsRef.current, [ni]: label};
+                  streetsRef.current = { ...streetsRef.current, [ni]: label };
                   setStreets(streetsRef.current);
                 });
               }
@@ -460,7 +466,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
           }
         };
         sub = await Location.watchPositionAsync(
-          {accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 1},
+          { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 1 },
           (loc) => {
             if (!alive) return;
             handleFix(
@@ -505,7 +511,7 @@ export function useNavTracking(opts: NavTrackingOpts): {
 
   const onRegionChanging = (e: unknown): void => {
     seedFrameRef.current?.();
-    const props = (e as {nativeEvent?: {userInteraction?: boolean; zoom?: number}}).nativeEvent;
+    const props = (e as { nativeEvent?: { userInteraction?: boolean; zoom?: number } }).nativeEvent;
     if (typeof props?.zoom === "number") zoomRef.current = props.zoom;
     if (props?.userInteraction && Date.now() - lastCmdRef.current > 350) {
       setFollowing(false);
@@ -529,13 +535,13 @@ export function useNavTracking(opts: NavTrackingOpts): {
     }
     const h = list[next];
     driveToHazard(h.lat, h.lng, h.distanceMeters);
-    hazardFocusRef.current = {at: [h.lng, h.lat], highlight: windowAround(r.geometry.coordinates, h.distanceMeters, HIGHLIGHT_HALF_METERS), idx: next};
+    hazardFocusRef.current = { at: [h.lng, h.lat], highlight: windowAround(r.geometry.coordinates, h.distanceMeters, HIGHLIGHT_HALF_METERS), idx: next };
     setHazardFocus(hazardFocusRef.current);
   };
   const driveToHazard = (lat: number, lng: number, distanceMeters: number): void => {
     const r = routeRef.current;
     const highlight = windowAround(r.geometry.coordinates, distanceMeters, HIGHLIGHT_HALF_METERS);
-    hazardFocusRef.current = {at: [lng, lat], highlight, idx: -1};
+    hazardFocusRef.current = { at: [lng, lat], highlight, idx: -1 };
     setHazardFocus(hazardFocusRef.current);
     setPreview(null);
     setFollowing(false);
@@ -563,9 +569,9 @@ export function useNavTracking(opts: NavTrackingOpts): {
     const p0 = coords[Math.max(0, Math.min(seg, coords.length - 2))];
     const p1 = coords[Math.max(0, Math.min(seg + 1, coords.length - 1))];
     const bearing = (p0[0] !== p1[0] || p0[1] !== p1[1])
-      ? courseBetween({lat: p0[1], lng: p0[0]}, {lat: p1[1], lng: p1[0]})
+      ? courseBetween({ lat: p0[1], lng: p0[0] }, { lat: p1[1], lng: p1[0] })
       : pickBearing();
-    setPreview({at, highlight, bearing});
+    setPreview({ at, highlight, bearing });
     hazardFocusRef.current = null;
     setHazardFocus(null);
     setFollowing(false);
@@ -607,17 +613,17 @@ export function useNavTracking(opts: NavTrackingOpts): {
     void (async () => {
       try {
         const raced = await Promise.race([
-          Location.getCurrentPositionAsync({accuracy: Location.Accuracy.Balanced}),
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), RECENTER_FIX_TIMEOUT_MS)),
         ]);
         const fix = raced ?? (await Location.getLastKnownPositionAsync().catch(() => null));
         if (fix) {
           const lat = fix.coords.latitude;
           const lng = fix.coords.longitude;
-          lastFixRef.current = {lat, lng};
+          lastFixRef.current = { lat, lng };
           drive(lat, lng);
         }
-      } catch {}
+      } catch { }
       setRecentering(false);
     })();
   };
@@ -633,38 +639,38 @@ export function useNavTracking(opts: NavTrackingOpts): {
   const nextStreet = next ? (next.street ?? streets[nextIdx]) : undefined;
   const nextToGo = next && progress ? Math.max(0, stepProg[nextIdx] - progress.progressMeters) : 0;
   const coords = route.geometry.coordinates;
-  const split = progress ? splitRoute(coords, progress.segIndex, progress.point) : {traveled: [] as [number, number][], remaining: coords};
+  const split = progress ? splitRoute(coords, progress.segIndex, progress.point) : { traveled: [] as [number, number][], remaining: coords };
 
   return {
     route,
     pos,
     progress,
     following,
-  arrived,
-  rerouting,
-  error,
-  clearError,
+    arrived,
+    rerouting,
+    error,
+    clearError,
     notice,
     streets,
     steps,
     stepProg,
     arrowRotate,
     cameraRef,
-    next: next ? {kind: next.kind, street: nextStreet, toGo: nextToGo} : null,
+    next: next ? { kind: next.kind, street: nextStreet, toGo: nextToGo } : null,
     speedKmh,
-  onRegionChanging,
-  onRecenter,
-  rerouteForConfirm,
-  refreshRouteQuiet,
-  previewStep,
-  preview,
-  hazardFocus,
-  hazardCount: flagWarningList.length,
-  flagWarnings: flagWarningList,
-  cycleHazard,
-  focusAt,
-  recentering,
-  traveled: split.traveled,
-  remaining: split.remaining,
-};
+    onRegionChanging,
+    onRecenter,
+    rerouteForConfirm,
+    refreshRouteQuiet,
+    previewStep,
+    preview,
+    hazardFocus,
+    hazardCount: flagWarningList.length,
+    flagWarnings: flagWarningList,
+    cycleHazard,
+    focusAt,
+    recentering,
+    traveled: split.traveled,
+    remaining: split.remaining,
+  };
 }

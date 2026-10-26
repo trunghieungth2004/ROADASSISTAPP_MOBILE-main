@@ -21,16 +21,16 @@ export const en = {
     finish: "Finish",
     dismiss: "Close tutorial",
     steps: [
-      {title: "Plan a route", body: "Choose an origin and destination here to find a route."},
-      {title: "Choose a vehicle", body: "Select one of your vehicles so the route can account for its size and type."},
-      {title: "Report a road hazard", body: "Use this control to report a hazard at a point on the map. Reports are also listed in Hazards."},
-      {title: "Find your current location", body: "Use this control to locate yourself on the map."},
-      {title: "Recenter the map", body: "Tap the location control whenever you want to bring the map back to your current position."},
-      {title: "Review hazards", body: "Open Hazards to view reports, filter them, and confirm or deny reports from other road users."},
-      {title: "Request roadside assistance", body: "Open Assist to request SOS, towing, or mechanic help and follow requests."},
-      {title: "Return to route planning", body: "Return to Route whenever you want to plan or continue a journey."},
-      {title: "Explore more features", body: "More contains settings, permissions, services, and other app tools."},
-      {title: "Manage your profile", body: "Review your account here. Manage your vehicles from the Vehicle tab."},
+      { title: "Plan a route", body: "Choose an origin and destination here to find a route." },
+      { title: "Choose a vehicle", body: "Select one of your vehicles so the route can account for its size and type." },
+      { title: "Report a road hazard", body: "Use this control to report a hazard at a point on the map. Reports are also listed in Hazards." },
+      { title: "Find your current location", body: "Use this control to locate yourself on the map." },
+      { title: "Recenter the map", body: "Tap the location control whenever you want to bring the map back to your current position." },
+      { title: "Review hazards", body: "Open Hazards to view reports, filter them, and confirm or deny reports from other road users." },
+      { title: "Request roadside assistance", body: "Open Assist to request SOS, towing, or mechanic help and follow requests." },
+      { title: "Return to route planning", body: "Return to Route whenever you want to plan or continue a journey." },
+      { title: "Explore more features", body: "More contains settings, permissions, services, and other app tools." },
+      { title: "Manage your profile", body: "Review your account here. Manage your vehicles from the Vehicle tab." },
     ],
   },
   more: {
@@ -541,7 +541,7 @@ export const en = {
     invalidType: "Pick a vehicle type.",
     createShopFailed: "Could not save the shop.",
     createTowFailed: "Could not register the tow vehicle.",
-    days: {MON: "Mon", TUE: "Tue", WED: "Wed", THU: "Thu", FRI: "Fri", SAT: "Sat", SUN: "Sun"},
+    days: { MON: "Mon", TUE: "Tue", WED: "Wed", THU: "Thu", FRI: "Fri", SAT: "Sat", SUN: "Sun" },
   },
   saved: {
     title: "Saved routes",
@@ -612,6 +612,11 @@ export const en = {
     orContinueWith: "or continue with",
     tabLogin: "Login",
     tabSignup: "Signup",
-  },
+    chat: {
+      title: "Chat",
+      empty: "Chưa có tin nhắn nào",
+      placeholder: "Nhập tin nhắn...",
+    }
+  }
 };
 export type Strings = typeof en;
