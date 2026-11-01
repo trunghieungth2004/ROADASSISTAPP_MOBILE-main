@@ -98,6 +98,17 @@ goes through a name dialog (120 chars). Confirmations and save failures
 use the shared `Snack` (4 s auto-hide); contextual errors stay inline in
 the card.
 
+## VIP paywall
+
+`SubscriptionScreen` keeps the existing weekly/monthly/yearly cards but
+creates a SePay charge through `POST /payments/create` with `{planId,
+method: "SEPAY"}`. The checkout URL opens in the system browser; the app
+refreshes `/users/me` while the payment is pending and on foreground
+return. The server owns the plan amount and activates or extends
+`users/{uid}.subscription` from the SePay IPN, so a killed app still sees
+the correct status after the next login. VIP is a standalone purchase and
+does not gate the rest of the app.
+
 ## Build / verify
 
 ```

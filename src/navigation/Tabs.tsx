@@ -225,7 +225,7 @@ function OnboardingGate() {
   return <OnboardingScreen t={t} lang={lang} token={token} busy={busy} error={error} onFinish={(services, shop, tow) => void finishGate(services, shop, tow)} onSkip={() => void skipGate()} />;
 }
 export default function Tabs() {
-  const { t } = useStrings();
+  const { t, lang } = useStrings();
   const { token, loaded } = useAuth();
   const { loading, roleChosen, isRider, bundle } = useProfile();
   const [permsDone, setPermsDone] = useState(false);
@@ -259,7 +259,7 @@ export default function Tabs() {
               name="Subscription"
               component={SubscriptionScreen}
               options={{
-                title: 'Nâng cấp VIP',
+                title: lang === "vi" ? "Nâng cấp VIP" : "VIP",
                 headerShown: true,
                 tabBarButton: () => null,
               }}

@@ -1,7 +1,7 @@
 import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode} from "react";
-import {fetchMeBundle, setActiveVehicle as apiActivateVehicle, setOnboarded as apiSetOnboarded, type MeBundle, type MeUser, type MeVehicle} from "../api/users";
+import {fetchMeBundle, setActiveVehicle as apiActivateVehicle, setOnboarded as apiSetOnboarded, type MeBundle, type MeSubscription, type MeSubscriptionPlan, type MeUser, type MeVehicle} from "../api/users";
 import {useAuth} from "./AuthContext";
-export type ProfileState = {bundle: MeBundle | null; loading: boolean; user: MeUser | null; vehicles: MeVehicle[]; activeVehicle: MeVehicle | null; hasVehicle: boolean; roleChosen: boolean; isRider: boolean; refresh: () => Promise<MeBundle | null>; activateVehicle: (profileId: string | null) => Promise<void>; markOnboarded: (service: string) => Promise<void>};
+export type ProfileState = {bundle: MeBundle | null; loading: boolean; user: MeUser | null; vehicles: MeVehicle[]; activeVehicle: MeVehicle | null; hasVehicle: boolean; roleChosen: boolean; isRider: boolean; subscription: MeSubscription | null; subscriptionPlans: MeSubscriptionPlan[]; isVip: boolean; refresh: () => Promise<MeBundle | null>; activateVehicle: (profileId: string | null) => Promise<void>; markOnboarded: (service: string) => Promise<void>};
 const ProfileContext = createContext<ProfileState | null>(null);
 export function ProfileProvider({children}: {children: ReactNode}) {
   const {uid, token} = useAuth();
@@ -45,7 +45,12 @@ export function ProfileProvider({children}: {children: ReactNode}) {
   const value = useMemo<ProfileState>(() => {
     const vehicles = bundle?.vehicles ?? [];
     const services = bundle?.user.services ?? [];
-    return {bundle, loading, user: bundle?.user ?? null, vehicles, activeVehicle: bundle?.activeVehicle ?? null, hasVehicle: vehicles.length > 0, roleChosen: bundle?.user.onboarded === true, isRider: services.includes("RIDER"), refresh, activateVehicle, markOnboarded};
+    const subscription = bundle?.subscription ?? null;
+    const expiresAt = subscription ? Date.parse(subscription.expiresAt) : NaN;
+    const isVip = subscription?.status === "ACTIVE" &&
+      Number.isFinite(expiresAt) &&
+      expiresAt > Date.now();
+    return {bundle, loading, user: bundle?.user ?? null, vehicles, activeVehicle: bundle?.activeVehicle ?? null, hasVehicle: vehicles.length > 0, roleChosen: bundle?.user.onboarded === true, isRider: services.includes("RIDER"), subscription, subscriptionPlans: bundle?.subscriptionPlans ?? [], isVip, refresh, activateVehicle, markOnboarded};
   }, [bundle, loading, refresh, activateVehicle, markOnboarded]);
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
 }

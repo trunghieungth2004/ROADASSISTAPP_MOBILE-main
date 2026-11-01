@@ -29,6 +29,22 @@ export type MeBundle = {
   user: MeUser;
   vehicles: MeVehicle[];
   activeVehicle: MeVehicle | null;
+  subscription?: MeSubscription | null;
+  subscriptionPlans?: MeSubscriptionPlan[];
+};
+
+export type MeSubscription = {
+  planId: string;
+  status: "ACTIVE" | "EXPIRED";
+  startedAt: string;
+  expiresAt: string;
+  lastPaymentId?: string | null;
+};
+
+export type MeSubscriptionPlan = {
+  id: string;
+  amount: number;
+  days: number;
 };
 
 export type OnboardResult = {

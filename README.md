@@ -24,6 +24,8 @@ cannot run this app (native modules: MapLibre, notifications, audio, tasks).
   follow-mode nav: tracking hook, voice, turn list, flags, hazard focus.
 - `src/screens/{Home,Hazards,Assist,Vehicle,More}Screen.tsx` — tabs;
   More holds permissions, diagnostics, and sign-out.
+- `src/screens/SubscriptionScreen.tsx` — VIP paywall; SePay checkout and
+  status from `/users/me`.
 - `src/services/` — `push` (FCM), `sound` (earcons + voice ducking),
   `bgNav` (background task), `permissions`, `diagnostics`, `navigation`,
   `maneuvers`.

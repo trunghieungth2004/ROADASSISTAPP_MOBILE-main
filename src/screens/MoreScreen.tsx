@@ -37,7 +37,7 @@ export default function MoreScreen() {
   const navigation = useNavigation<any>();
   const { t, lang, toggle } = useStrings();
   const { signOut } = useAuth();
-  const { user, refresh, markOnboarded } = useProfile();
+  const { user, refresh, markOnboarded, subscription, isVip } = useProfile();
   const { token, uid } = useAuth();
   const { mode, toggle: toggleTheme } = useThemeMode();
   const scheme = mode;
@@ -59,6 +59,14 @@ export default function MoreScreen() {
   const [reportCount, setReportCount] = useState(0);
   const [confirmedCount, setConfirmedCount] = useState(0);
   const isVolunteer = (user?.services ?? []).includes("VOLUNTEER");
+  const vipPlanLabel = subscription?.planId === "WEEKLY"
+    ? (lang === "vi" ? "Gói Tuần" : "Weekly")
+    : subscription?.planId === "YEARLY"
+      ? (lang === "vi" ? "Gói Năm" : "Yearly")
+      : (lang === "vi" ? "Gói Tháng" : "Monthly");
+  const vipExpiry = subscription && Number.isFinite(Date.parse(subscription.expiresAt))
+    ? new Date(subscription.expiresAt).toLocaleDateString(lang === "vi" ? "vi-VN" : "en-GB")
+    : "";
   const [providers, setProviders] = useState<Provider[]>([]);
   const [providerBusy, setProviderBusy] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -259,8 +267,10 @@ export default function MoreScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              backgroundColor: pressed ? "#fef3c7" : "#fffbeb",
-              borderColor: "#f59e0b",
+              backgroundColor: isVip
+                ? (pressed ? "#dcfce7" : "#f0fdf4")
+                : (pressed ? "#fef3c7" : "#fffbeb"),
+              borderColor: isVip ? "#16a34a" : "#f59e0b",
               borderWidth: 1.5,
               padding: 16,
               borderRadius: 14,
@@ -270,16 +280,22 @@ export default function MoreScreen() {
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#b45309" }}>
-              {lang === "vi" ? "⭐ Nâng cấp tài khoản VIP" : "⭐ Upgrade VIP Account"}
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: isVip ? "#15803d" : "#b45309" }}>
+              {isVip
+                ? (lang === "vi" ? "⭐ VIP đang hoạt động" : "⭐ VIP active")
+                : (lang === "vi" ? "⭐ Nâng cấp tài khoản VIP" : "⭐ Upgrade VIP Account")}
             </Text>
-            <Text style={{ fontSize: 12, color: "#d97706", marginTop: 2 }}>
-              {lang === "vi"
-                ? "Gói tuần (40k), tháng (200k), năm (1.5tr)"
-                : "Weekly (40k), Monthly (200k), Yearly (1.5M)"}
+            <Text style={{ fontSize: 12, color: isVip ? "#166534" : "#d97706", marginTop: 2 }}>
+              {isVip
+                ? (lang === "vi"
+                  ? `${vipPlanLabel} · đến ${vipExpiry}`
+                  : `${vipPlanLabel} · until ${vipExpiry}`)
+                : (lang === "vi"
+                  ? "Gói tuần (40k), tháng (200k), năm (1.5tr)"
+                  : "Weekly (40k), Monthly (200k), Yearly (1.5M)")}
             </Text>
           </View>
-          <Text style={{ fontSize: 20, fontWeight: "bold", color: "#b45309" }}>›</Text>
+          <Text style={{ fontSize: 20, fontWeight: "bold", color: isVip ? "#15803d" : "#b45309" }}>›</Text>
         </Pressable>
         <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
           <Pressable style={styles.listRow} onPress={startTutorial} accessibilityRole="button">
