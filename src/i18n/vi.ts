@@ -1,5 +1,4 @@
 import type { Strings } from "./en";
-
 export const vi: Strings = {
   appName: "RoadAssist",
   darkMode: "Chuyển sang chế độ tối",
@@ -22,16 +21,16 @@ export const vi: Strings = {
     finish: "Hoàn tất",
     dismiss: "Đóng hướng dẫn",
     steps: [
-      {title: "Lập lộ trình", body: "Chọn điểm đi và điểm đến tại đây để tìm lộ trình."},
-      {title: "Chọn phương tiện", body: "Chọn một phương tiện để lộ trình phù hợp với kích thước và loại xe."},
-      {title: "Báo cáo nguy hiểm", body: "Dùng nút này để báo cáo nguy hiểm tại vị trí trên bản đồ. Báo cáo cũng xuất hiện trong mục Cảnh báo."},
-      {title: "Tìm vị trí hiện tại", body: "Dùng nút này để xác định vị trí của bạn trên bản đồ."},
-      {title: "Đưa bản đồ về vị trí", body: "Nhấn nút vị trí bất cứ lúc nào để đưa bản đồ trở lại vị trí hiện tại của bạn."},
-      {title: "Theo dõi cảnh báo", body: "Mở Cảnh báo để xem, lọc và xác nhận hoặc từ chối báo cáo của người đi đường khác."},
-      {title: "Yêu cầu hỗ trợ bên đường", body: "Mở Cứu hộ để yêu cầu SOS, cứu kéo hoặc sửa xe và theo dõi yêu cầu."},
-      {title: "Quay lại lập lộ trình", body: "Quay lại Lộ trình bất cứ khi nào bạn muốn lập hoặc tiếp tục chuyến đi."},
-      {title: "Khám phá thêm tính năng", body: "Mục Thêm có cài đặt, quyền, dịch vụ và các công cụ khác của ứng dụng."},
-      {title: "Quản lý hồ sơ", body: "Xem tài khoản tại đây. Quản lý phương tiện trong tab Xe của tôi."},
+      { title: "Lập lộ trình", body: "Chọn điểm đi và điểm đến tại đây để tìm lộ trình." },
+      { title: "Chọn phương tiện", body: "Chọn một phương tiện để lộ trình phù hợp với kích thước và loại xe." },
+      { title: "Báo cáo nguy hiểm", body: "Dùng nút này để báo cáo nguy hiểm tại vị trí trên bản đồ. Báo cáo cũng xuất hiện trong mục Cảnh báo." },
+      { title: "Tìm vị trí hiện tại", body: "Dùng nút này để xác định vị trí của bạn trên bản đồ." },
+      { title: "Đưa bản đồ về vị trí", body: "Nhấn nút vị trí bất cứ lúc nào để đưa bản đồ trở lại vị trí hiện tại của bạn." },
+      { title: "Theo dõi cảnh báo", body: "Mở Cảnh báo để xem, lọc và xác nhận hoặc từ chối báo cáo của người đi đường khác." },
+      { title: "Yêu cầu hỗ trợ bên đường", body: "Mở Cứu hộ để yêu cầu SOS, cứu kéo hoặc sửa xe và theo dõi yêu cầu." },
+      { title: "Quay lại lập lộ trình", body: "Quay lại Lộ trình bất cứ khi nào bạn muốn lập hoặc tiếp tục chuyến đi." },
+      { title: "Khám phá thêm tính năng", body: "Mục Thêm có cài đặt, quyền, dịch vụ và các công cụ khác của ứng dụng." },
+      { title: "Quản lý hồ sơ", body: "Xem tài khoản tại đây. Quản lý phương tiện trong tab Xe của tôi." },
     ],
   },
   more: {
@@ -551,7 +550,7 @@ export const vi: Strings = {
     invalidType: "Hãy chọn loại xe.",
     createShopFailed: "Không lưu được tiệm.",
     createTowFailed: "Không đăng ký được xe cứu hộ.",
-    days: {MON: "T2", TUE: "T3", WED: "T4", THU: "T5", FRI: "T6", SAT: "T7", SUN: "CN"},
+    days: { MON: "T2", TUE: "T3", WED: "T4", THU: "T5", FRI: "T6", SAT: "T7", SUN: "CN" },
   },
   saved: {
     title: "Lộ trình đã lưu",
@@ -622,5 +621,10 @@ export const vi: Strings = {
     orContinueWith: "hoặc tiếp tục với",
     tabLogin: "Đăng nhập",
     tabSignup: "Đăng ký",
+    chat: {
+      title: "Chat",
+      empty: "Chưa có tin nhắn nào",
+      placeholder: "Nhập tin nhắn...",
+    },
   },
 };

@@ -1,32 +1,32 @@
-import {useCallback, useState} from "react";
-import {Keyboard, Pressable, ScrollView, StyleSheet, Switch, View} from "react-native";
-import {AppText as Text, AppTextInput as TextInput} from "../components/AppText";
-import {MaterialIcons} from "@expo/vector-icons";
-import {useFocusEffect, useNavigation} from "@react-navigation/native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useBottomTabBarHeight} from "@react-navigation/bottom-tabs";
-import {setVolunteerAvailability, updateProfile, volunteerHeartbeat} from "../api/users";
-import {capturePosition, useLocationBeat} from "../services/locationBeats";
-import {missingKinds, providerPill, providerRowSubtitle, serviceLabel, switchEnabled} from "./more/providerUi";
-import {toMessage} from "../api/client";
-import {useAuth} from "../context/AuthContext";
-import {useProfile} from "../context/ProfileContext";
-import {useStrings} from "../context/LanguageContext";
-import {darkTheme, lightTheme} from "../theme";
+import { useCallback, useState } from "react";
+import { Keyboard, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { AppText as Text, AppTextInput as TextInput } from "../components/AppText";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { setVolunteerAvailability, updateProfile, volunteerHeartbeat } from "../api/users";
+import { capturePosition, useLocationBeat } from "../services/locationBeats";
+import { missingKinds, providerPill, providerRowSubtitle, serviceLabel, switchEnabled } from "./more/providerUi";
+import { toMessage } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
+import { useStrings } from "../context/LanguageContext";
+import { darkTheme, lightTheme } from "../theme";
 import ScreenContainer from "../components/ScreenContainer";
 import Snack from "../components/Snack";
-import {snackAboveTabs} from "../components/snackOffset";
-import {myFlags} from "../api/flags";
-import {createProvider, myProviders, updateProvider, type Provider} from "../api/providers";
-import {normalizeTowPlate, parseTowWidth, validateTowDraft} from "../services/towPlates";
-import type {ShopDraft, TowDraft} from "./OnboardingScreen";
+import { snackAboveTabs } from "../components/snackOffset";
+import { myFlags } from "../api/flags";
+import { createProvider, myProviders, updateProvider, type Provider } from "../api/providers";
+import { normalizeTowPlate, parseTowWidth, validateTowDraft } from "../services/towPlates";
+import type { ShopDraft, TowDraft } from "./OnboardingScreen";
 import ProviderFormDialog from "../components/ProviderFormDialog";
 import OnboardingScreen from "./OnboardingScreen";
 import Overlay from "../components/overlay/Overlay";
-import {useThemeMode} from "../context/ThemeContext";
-import {getPermissionStates, openAppSettings, openBatterySettings, requestBackgroundLocationPermission, requestNotificationPermission, type AppPermissionStates} from "../services/permissions";
-import {syncPushToken} from "../services/push";
-import {useTutorial} from "../context/TutorialContext";
+import { useThemeMode } from "../context/ThemeContext";
+import { getPermissionStates, openAppSettings, openBatterySettings, requestBackgroundLocationPermission, requestNotificationPermission, type AppPermissionStates } from "../services/permissions";
+import { syncPushToken } from "../services/push";
+import { useTutorial } from "../context/TutorialContext";
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -34,11 +34,12 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 export default function MoreScreen() {
-  const {t, lang, toggle} = useStrings();
-  const {signOut} = useAuth();
-  const {user, refresh, markOnboarded} = useProfile();
-  const {token, uid} = useAuth();
-  const {mode, toggle: toggleTheme} = useThemeMode();
+  const navigation = useNavigation<any>();
+  const { t, lang, toggle } = useStrings();
+  const { signOut } = useAuth();
+  const { user, refresh, markOnboarded } = useProfile();
+  const { token, uid } = useAuth();
+  const { mode, toggle: toggleTheme } = useThemeMode();
   const scheme = mode;
   const theme = scheme === "dark" ? darkTheme : lightTheme;
   const insets = useSafeAreaInsets();
@@ -50,10 +51,9 @@ export default function MoreScreen() {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [servicesBusy, setServicesBusy] = useState(false);
   const [servicesError, setServicesError] = useState<string | null>(null);
-  const [perms, setPerms] = useState<AppPermissionStates>({notifications: {granted: false, canAskAgain: true}, backgroundLocation: {granted: false, canAskAgain: true}});
+  const [perms, setPerms] = useState<AppPermissionStates>({ notifications: { granted: false, canAskAgain: true }, backgroundLocation: { granted: false, canAskAgain: true } });
   const [permsBusy, setPermsBusy] = useState(false);
-  const navigation = useNavigation();
-  const {start: startTutorial, getTargetRef} = useTutorial();
+  const { start: startTutorial, getTargetRef } = useTutorial();
   const [volBusy, setVolBusy] = useState(false);
   const [volError, setVolError] = useState<string | null>(null);
   const [reportCount, setReportCount] = useState(0);
@@ -92,7 +92,7 @@ export default function MoreScreen() {
     try {
       if (perms.notifications.canAskAgain) {
         const next = await requestNotificationPermission();
-        setPerms({...perms, notifications: next});
+        setPerms({ ...perms, notifications: next });
         if (next.granted) await syncPushToken(token, uid);
       } else {
         openAppSettings();
@@ -106,7 +106,7 @@ export default function MoreScreen() {
     setPermsBusy(true);
     try {
       if (perms.backgroundLocation.canAskAgain) {
-        setPerms({...perms, backgroundLocation: await requestBackgroundLocationPermission()});
+        setPerms({ ...perms, backgroundLocation: await requestBackgroundLocationPermission() });
       } else {
         openAppSettings();
       }
@@ -126,7 +126,7 @@ export default function MoreScreen() {
     setVolBusy(true);
     setVolError(null);
     try {
-      await setVolunteerAvailability({available: next}, token);
+      await setVolunteerAvailability({ available: next }, token);
       await refresh();
       if (next && token) {
         const pos = await capturePosition();
@@ -139,12 +139,12 @@ export default function MoreScreen() {
       setVolBusy(false);
     }
   }
-  async function onVolunteerOption(patch: {volunteerRadiusKm?: number; capability?: string}): Promise<void> {
+  async function onVolunteerOption(patch: { volunteerRadiusKm?: number; capability?: string }): Promise<void> {
     if (!token || volBusy) return;
     setVolBusy(true);
     setVolError(null);
     try {
-      await setVolunteerAvailability({available: true, ...patch}, token);
+      await setVolunteerAvailability({ available: true, ...patch }, token);
       await refresh();
       setNotice(t.more.saved);
     } catch (err) {
@@ -161,7 +161,7 @@ export default function MoreScreen() {
     if (!token || !nameDraft.trim()) return;
     Keyboard.dismiss();
     setEditError(null);
-    try { await updateProfile({displayName: nameDraft.trim()}, token); await refresh(); setEditOpen(false); setNotice(t.more.saved); } catch (err) { setEditError(toMessage(err)); }
+    try { await updateProfile({ displayName: nameDraft.trim() }, token); await refresh(); setEditOpen(false); setNotice(t.more.saved); } catch (err) { setEditError(toMessage(err)); }
   }
   async function onServicesFinish(selected: string[], shop: ShopDraft | null, tow: TowDraft | null) {
     setServicesBusy(true); setServicesError(null);
@@ -169,20 +169,20 @@ export default function MoreScreen() {
       if (shop && shop.name.trim() === "") throw new Error(t.provider.invalidName);
       if (tow) {
         if (tow.name.trim() === "") throw new Error(t.provider.invalidName);
-        if (validateTowDraft({plate: tow.plate, vehicleType: tow.vehicleType, width: tow.width})) throw new Error(t.tow.invalid);
+        if (validateTowDraft({ plate: tow.plate, vehicleType: tow.vehicleType, width: tow.width })) throw new Error(t.tow.invalid);
       }
       for (const service of selected) await markOnboarded(service);
       if (token) {
         if (shop) {
           try {
-            await createProvider({kind: "SHOP", name: shop.name.trim(), lat: shop.lat, lng: shop.lng, ...(shop.label ? {label: shop.label} : {})}, token);
+            await createProvider({ kind: "SHOP", name: shop.name.trim(), lat: shop.lat, lng: shop.lng, ...(shop.label ? { label: shop.label } : {}) }, token);
           } catch (err) {
             throw new Error(`${t.provider.createShopFailed} ${toMessage(err)}`);
           }
         }
         if (tow) {
           try {
-            await createProvider({kind: "TOW", name: tow.name.trim(), lat: tow.lat, lng: tow.lng, plate: normalizeTowPlate(tow.plate), vehicleType: tow.vehicleType, vehicleWidth: parseTowWidth(tow.width) ?? undefined}, token);
+            await createProvider({ kind: "TOW", name: tow.name.trim(), lat: tow.lat, lng: tow.lng, plate: normalizeTowPlate(tow.plate), vehicleType: tow.vehicleType, vehicleWidth: parseTowWidth(tow.width) ?? undefined }, token);
           } catch (err) {
             throw new Error(`${t.provider.createTowFailed} ${toMessage(err)}`);
           }
@@ -200,7 +200,7 @@ export default function MoreScreen() {
     setProviderBusy(true);
     setProviderError(null);
     try {
-      await updateProvider({providerId: provider.id, accepting: next}, token);
+      await updateProvider({ providerId: provider.id, accepting: next }, token);
       await loadProviders();
       setNotice(t.more.saved);
     } catch (err) {
@@ -213,48 +213,78 @@ export default function MoreScreen() {
   return (
     <ScreenContainer>
       <ScrollView
-        style={{marginBottom: Math.max(0, tabBarHeight - insets.bottom)}}
+        style={{ marginBottom: Math.max(0, tabBarHeight - insets.bottom) }}
         contentContainerStyle={[
           styles.scroll,
-          {paddingBottom: Math.max(16, tabBarHeight - insets.bottom + 16), backgroundColor: theme.background},
+          { paddingBottom: Math.max(16, tabBarHeight - insets.bottom + 16), backgroundColor: theme.background },
         ]}
       >
-        <View ref={getTargetRef("moreProfile")} collapsable={false} style={[styles.headerCard, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        <View ref={getTargetRef("moreProfile")} collapsable={false} style={[styles.headerCard, { backgroundColor: theme.paper, borderColor: theme.border }]}>
           <View style={styles.headerRow}>
             <View>
-              <View style={[styles.avatar, {backgroundColor: theme.primary}]}><Text style={styles.avatarText}>{initials(displayName)}</Text></View>
-              <Pressable style={[styles.avatarEdit, {backgroundColor: theme.paper, borderColor: theme.border}]} onPress={openEdit} accessibilityRole="button" accessibilityLabel={t.more.editName}>
+              <View style={[styles.avatar, { backgroundColor: theme.primary }]}><Text style={styles.avatarText}>{initials(displayName)}</Text></View>
+              <Pressable style={[styles.avatarEdit, { backgroundColor: theme.paper, borderColor: theme.border }]} onPress={openEdit} accessibilityRole="button" accessibilityLabel={t.more.editName}>
                 <MaterialIcons name="edit" size={16} color={theme.primary} />
               </Pressable>
             </View>
             <View style={styles.headerText}>
-              <Text style={[styles.name, {color: theme.text}]}>{displayName}</Text>
-              <Text style={[styles.email, {color: theme.muted}]}>{user?.email ?? ""}</Text>
+              <Text style={[styles.name, { color: theme.text }]}>{displayName}</Text>
+              <Text style={[styles.email, { color: theme.muted }]}>{user?.email ?? ""}</Text>
               <View style={styles.badgeRow}>
-                <View style={[styles.badge, {backgroundColor: theme.primary}]}><Text style={styles.badgeText}>{isAdmin ? t.more.roleAdmin : t.more.roleUser}</Text></View>
-                {services.map((s) => (<View key={s} style={[styles.service, {borderColor: theme.border}]}><Text style={[styles.serviceText, {color: theme.text}]}>{serviceLabel(s, t)}</Text></View>))}
+                <View style={[styles.badge, { backgroundColor: theme.primary }]}><Text style={styles.badgeText}>{isAdmin ? t.more.roleAdmin : t.more.roleUser}</Text></View>
+                {services.map((s) => (<View key={s} style={[styles.service, { borderColor: theme.border }]}><Text style={[styles.serviceText, { color: theme.text }]}>{serviceLabel(s, t)}</Text></View>))}
               </View>
             </View>
           </View>
           <View style={styles.statRow}>
             <View style={styles.stat}>
-              <Text style={[styles.statNumber, {color: theme.text}]}>{user?.points ?? 0}</Text>
-              <Text style={[styles.statLabel, {color: theme.muted}]}>{t.more.points}</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>{user?.points ?? 0}</Text>
+              <Text style={[styles.statLabel, { color: theme.muted }]}>{t.more.points}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={[styles.statNumber, {color: theme.text}]}>{reportCount}</Text>
-              <Text style={[styles.statLabel, {color: theme.muted}]}>{t.more.reports}</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>{reportCount}</Text>
+              <Text style={[styles.statLabel, { color: theme.muted }]}>{t.more.reports}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={[styles.statNumber, {color: theme.text}]}>{confirmedCount}</Text>
-              <Text style={[styles.statLabel, {color: theme.muted}]}>{t.more.confirmed}</Text>
+              <Text style={[styles.statNumber, { color: theme.text }]}>{confirmedCount}</Text>
+              <Text style={[styles.statLabel, { color: theme.muted }]}>{t.more.confirmed}</Text>
             </View>
           </View>
         </View>
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        {/* NÚT MUA GÓI DỊCH VỤ VIP */}
+        <Pressable
+          onPress={() => navigation.navigate("Subscription")}
+          style={({ pressed }) => [
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: pressed ? "#fef3c7" : "#fffbeb",
+              borderColor: "#f59e0b",
+              borderWidth: 1.5,
+              padding: 16,
+              borderRadius: 14,
+              marginTop: 12,
+              marginBottom: 4,
+            }
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#b45309" }}>
+              {lang === "vi" ? "⭐ Nâng cấp tài khoản VIP" : "⭐ Upgrade VIP Account"}
+            </Text>
+            <Text style={{ fontSize: 12, color: "#d97706", marginTop: 2 }}>
+              {lang === "vi"
+                ? "Gói tuần (40k), tháng (200k), năm (1.5tr)"
+                : "Weekly (40k), Monthly (200k), Yearly (1.5M)"}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 20, fontWeight: "bold", color: "#b45309" }}>›</Text>
+        </Pressable>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
           <Pressable style={styles.listRow} onPress={startTutorial} accessibilityRole="button">
             <MaterialIcons name="help-outline" size={20} color={theme.primary} />
-            <Text style={[styles.listText, {color: theme.text}]}>{t.tutorial.replay}</Text>
+            <Text style={[styles.listText, { color: theme.text }]}>{t.tutorial.replay}</Text>
             <MaterialIcons name="chevron-right" size={20} color={theme.muted} />
           </Pressable>
         </View>
@@ -265,97 +295,97 @@ export default function MoreScreen() {
           closeLabel={t.common.cancel}
           onClose={() => { Keyboard.dismiss(); setEditOpen(false); }}
           scrollable={false}
-          actions={[{label: t.common.save, tone: "primary", disabled: !nameDraft.trim(), onPress: () => void onSaveName()}]}
+          actions={[{ label: t.common.save, tone: "primary", disabled: !nameDraft.trim(), onPress: () => void onSaveName() }]}
         >
-          {editError ? <Text style={[styles.error, {color: theme.danger}]}>{editError}</Text> : null}
-          <TextInput style={[styles.input, {borderColor: theme.border, color: theme.text}]} value={nameDraft} onChangeText={setNameDraft} placeholder={t.more.displayName} placeholderTextColor={theme.muted} />
+          {editError ? <Text style={[styles.error, { color: theme.danger }]}>{editError}</Text> : null}
+          <TextInput style={[styles.input, { borderColor: theme.border, color: theme.text }]} value={nameDraft} onChangeText={setNameDraft} placeholder={t.more.displayName} placeholderTextColor={theme.muted} />
         </Overlay>
         <Overlay visible={servicesOpen} variant="fullScreen" closeLabel={t.common.cancel} onClose={() => setServicesOpen(false)}>
           {servicesOpen ? (
-            <OnboardingScreen t={t} lang={lang} token={token} busy={servicesBusy} error={servicesError} selectedServices={services} registered={{shop: !missing.shop, tow: !missing.tow}} onFinish={(selected, shop, tow) => void onServicesFinish(selected, shop, tow)} onSkip={() => void onServicesSkip()} />
+            <OnboardingScreen t={t} lang={lang} token={token} busy={servicesBusy} error={servicesError} selectedServices={services} registered={{ shop: !missing.shop, tow: !missing.tow }} onFinish={(selected, shop, tow) => void onServicesFinish(selected, shop, tow)} onSkip={() => void onServicesSkip()} />
           ) : null}
         </Overlay>
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
-          <Pressable style={styles.listRow} onPress={() => { setServicesError(null); setServicesOpen(true); }}><MaterialIcons name="bookmark" size={20} color={theme.primary} /><Text style={[styles.listText, {color: theme.text}]}>{t.more.services}</Text><MaterialIcons name="chevron-right" size={20} color={theme.muted} /></Pressable>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
+          <Pressable style={styles.listRow} onPress={() => { setServicesError(null); setServicesOpen(true); }}><MaterialIcons name="bookmark" size={20} color={theme.primary} /><Text style={[styles.listText, { color: theme.text }]}>{t.more.services}</Text><MaterialIcons name="chevron-right" size={20} color={theme.muted} /></Pressable>
         </View>
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
-          <Pressable style={styles.listRow} onPress={toggleTheme} accessibilityRole="switch" accessibilityState={{checked: scheme === "dark"}}><MaterialIcons name={scheme === "dark" ? "light-mode" : "dark-mode"} size={20} color={theme.primary} /><Text style={[styles.listText, {color: theme.text}]}>{t.more.appearance}</Text><View pointerEvents="none"><Switch value={scheme === "dark"} onValueChange={() => toggleTheme()} trackColor={{false: theme.divider, true: theme.primary}} thumbColor="#ffffff" /></View></Pressable>
-          <View style={[styles.divider, {backgroundColor: theme.divider}]} />
-          <Pressable style={styles.listRow} onPress={toggle}><MaterialIcons name="translate" size={20} color={theme.primary} /><Text style={[styles.listText, {color: theme.text}]}>{t.more.language}</Text><Text style={[styles.listSecondary, {color: theme.muted}]}>{lang === "en" ? "EN" : "VI"}</Text><MaterialIcons name="chevron-right" size={20} color={theme.muted} /></Pressable>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
+          <Pressable style={styles.listRow} onPress={toggleTheme} accessibilityRole="switch" accessibilityState={{ checked: scheme === "dark" }}><MaterialIcons name={scheme === "dark" ? "light-mode" : "dark-mode"} size={20} color={theme.primary} /><Text style={[styles.listText, { color: theme.text }]}>{t.more.appearance}</Text><View pointerEvents="none"><Switch value={scheme === "dark"} onValueChange={() => toggleTheme()} trackColor={{ false: theme.divider, true: theme.primary }} thumbColor="#ffffff" /></View></Pressable>
+          <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+          <Pressable style={styles.listRow} onPress={toggle}><MaterialIcons name="translate" size={20} color={theme.primary} /><Text style={[styles.listText, { color: theme.text }]}>{t.more.language}</Text><Text style={[styles.listSecondary, { color: theme.muted }]}>{lang === "en" ? "EN" : "VI"}</Text><MaterialIcons name="chevron-right" size={20} color={theme.muted} /></Pressable>
         </View>
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
           <View style={styles.listRow}>
             <MaterialIcons name="notifications" size={20} color={theme.primary} />
             <View style={styles.permText}>
-              <Text style={[styles.listText, {color: theme.text}]}>{t.more.permNotifications}</Text>
-              <Text style={[styles.permHint, {color: theme.muted}]}>{t.more.permNotificationsHint}</Text>
+              <Text style={[styles.listText, { color: theme.text }]}>{t.more.permNotifications}</Text>
+              <Text style={[styles.permHint, { color: theme.muted }]}>{t.more.permNotificationsHint}</Text>
             </View>
-            <View style={[styles.permPill, {backgroundColor: perms.notifications.granted ? theme.primary : theme.divider}]}><Text style={styles.permPillText}>{perms.notifications.granted ? t.more.permOn : t.more.permOff}</Text></View>
+            <View style={[styles.permPill, { backgroundColor: perms.notifications.granted ? theme.primary : theme.divider }]}><Text style={styles.permPillText}>{perms.notifications.granted ? t.more.permOn : t.more.permOff}</Text></View>
             {!perms.notifications.granted ? (
-              <Pressable style={[styles.permBtn, {borderColor: theme.border}]} disabled={permsBusy} onPress={() => void onEnableNotifications()}><Text style={[styles.permBtnText, {color: theme.primary}]}>{perms.notifications.canAskAgain ? t.more.permEnable : t.more.permOpenSettings}</Text></Pressable>
+              <Pressable style={[styles.permBtn, { borderColor: theme.border }]} disabled={permsBusy} onPress={() => void onEnableNotifications()}><Text style={[styles.permBtnText, { color: theme.primary }]}>{perms.notifications.canAskAgain ? t.more.permEnable : t.more.permOpenSettings}</Text></Pressable>
             ) : null}
           </View>
-          <View style={[styles.divider, {backgroundColor: theme.divider}]} />
+          <View style={[styles.divider, { backgroundColor: theme.divider }]} />
           <View style={styles.listRow}>
             <MaterialIcons name="location-on" size={20} color={theme.primary} />
             <View style={styles.permText}>
-              <Text style={[styles.listText, {color: theme.text}]}>{t.more.permBackground}</Text>
-              <Text style={[styles.permHint, {color: theme.muted}]}>{t.more.permBackgroundHint}</Text>
+              <Text style={[styles.listText, { color: theme.text }]}>{t.more.permBackground}</Text>
+              <Text style={[styles.permHint, { color: theme.muted }]}>{t.more.permBackgroundHint}</Text>
             </View>
-            <View style={[styles.permPill, {backgroundColor: perms.backgroundLocation.granted ? theme.primary : theme.divider}]}><Text style={styles.permPillText}>{perms.backgroundLocation.granted ? t.more.permOn : t.more.permOff}</Text></View>
+            <View style={[styles.permPill, { backgroundColor: perms.backgroundLocation.granted ? theme.primary : theme.divider }]}><Text style={styles.permPillText}>{perms.backgroundLocation.granted ? t.more.permOn : t.more.permOff}</Text></View>
             {!perms.backgroundLocation.granted ? (
-              <Pressable style={[styles.permBtn, {borderColor: theme.border}]} disabled={permsBusy} onPress={() => void onEnableBackground()}><Text style={[styles.permBtnText, {color: theme.primary}]}>{perms.backgroundLocation.canAskAgain ? t.more.permEnable : t.more.permOpenSettings}</Text></Pressable>
+              <Pressable style={[styles.permBtn, { borderColor: theme.border }]} disabled={permsBusy} onPress={() => void onEnableBackground()}><Text style={[styles.permBtnText, { color: theme.primary }]}>{perms.backgroundLocation.canAskAgain ? t.more.permEnable : t.more.permOpenSettings}</Text></Pressable>
             ) : null}
           </View>
-          <View style={[styles.divider, {backgroundColor: theme.divider}]} />
+          <View style={[styles.divider, { backgroundColor: theme.divider }]} />
           <View style={styles.listRow}>
             <MaterialIcons name="battery-charging-full" size={20} color={theme.primary} />
             <View style={styles.permText}>
-              <Text style={[styles.listText, {color: theme.text}]}>{t.more.permBattery}</Text>
-              <Text style={[styles.permHint, {color: theme.muted}]}>{t.more.permBatteryHint}</Text>
+              <Text style={[styles.listText, { color: theme.text }]}>{t.more.permBattery}</Text>
+              <Text style={[styles.permHint, { color: theme.muted }]}>{t.more.permBatteryHint}</Text>
             </View>
-            <Pressable style={[styles.permBtn, {borderColor: theme.border}]} onPress={() => openBatterySettings()}><Text style={[styles.permBtnText, {color: theme.primary}]}>{t.more.permOpenSettings}</Text></Pressable>
+            <Pressable style={[styles.permBtn, { borderColor: theme.border }]} onPress={() => openBatterySettings()}><Text style={[styles.permBtnText, { color: theme.primary }]}>{t.more.permOpenSettings}</Text></Pressable>
           </View>
         </View>
         {isVolunteer ? (
-          <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+          <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
             <View style={styles.listRow}>
               <MaterialIcons name="volunteer-activism" size={20} color={theme.primary} />
               <View style={styles.permText}>
-                <Text style={[styles.listText, {color: theme.text}]}>{t.more.volTitle}</Text>
+                <Text style={[styles.listText, { color: theme.text }]}>{t.more.volTitle}</Text>
               </View>
-              <View style={[styles.permPill, {backgroundColor: user?.volunteerAvailable ? theme.primary : theme.divider}]}>
+              <View style={[styles.permPill, { backgroundColor: user?.volunteerAvailable ? theme.primary : theme.divider }]}>
                 <Text style={styles.permPillText}>{user?.volunteerAvailable ? t.more.permOn : t.more.permOff}</Text>
               </View>
               <View pointerEvents="none">
-                <Switch value={user?.volunteerAvailable === true} onValueChange={(v) => void onVolunteerToggle(v)} disabled={volBusy} trackColor={{false: theme.divider, true: theme.primary}} thumbColor="#ffffff" />
+                <Switch value={user?.volunteerAvailable === true} onValueChange={(v) => void onVolunteerToggle(v)} disabled={volBusy} trackColor={{ false: theme.divider, true: theme.primary }} thumbColor="#ffffff" />
               </View>
             </View>
             {user?.volunteerAvailable ? (
               <>
-                <View style={[styles.divider, {backgroundColor: theme.divider}]} />
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
                 <View style={styles.optionBlock}>
-                  <Text style={[styles.optionLabel, {color: theme.text}]}>{t.more.volRadius}</Text>
+                  <Text style={[styles.optionLabel, { color: theme.text }]}>{t.more.volRadius}</Text>
                   <View style={styles.optionRow}>
                     {[2, 5, 10, 15].map((km) => {
                       const current = user?.volunteerRadiusKm ?? 5;
                       const selected = current === km;
                       return (
-                        <Pressable key={km} style={[styles.optChip, {borderColor: selected ? theme.primary : theme.border}, selected && {backgroundColor: `${theme.primary}22`}]} disabled={volBusy} onPress={() => void onVolunteerOption({volunteerRadiusKm: km})} accessibilityRole="button">
-                          <Text style={[styles.optText, {color: selected ? theme.primary : theme.text}]}>{km}</Text>
+                        <Pressable key={km} style={[styles.optChip, { borderColor: selected ? theme.primary : theme.border }, selected && { backgroundColor: `${theme.primary}22` }]} disabled={volBusy} onPress={() => void onVolunteerOption({ volunteerRadiusKm: km })} accessibilityRole="button">
+                          <Text style={[styles.optText, { color: selected ? theme.primary : theme.text }]}>{km}</Text>
                         </Pressable>
                       );
                     })}
                   </View>
                 </View>
                 <View style={styles.optionBlock}>
-                  <Text style={[styles.optionLabel, {color: theme.text}]}>{t.more.volCapability}</Text>
+                  <Text style={[styles.optionLabel, { color: theme.text }]}>{t.more.volCapability}</Text>
                   <View style={styles.optionRow}>
-                    {[{id: "SOLO_BIKE", label: t.more.volSoloBike}, {id: "CAR", label: t.more.volCar}].map((c) => {
+                    {[{ id: "SOLO_BIKE", label: t.more.volSoloBike }, { id: "CAR", label: t.more.volCar }].map((c) => {
                       const selected = (user?.capability ?? "SOLO_BIKE") === c.id;
                       return (
-                        <Pressable key={c.id} style={[styles.optChip, {borderColor: selected ? theme.primary : theme.border}, selected && {backgroundColor: `${theme.primary}22`}]} disabled={volBusy} onPress={() => void onVolunteerOption({capability: c.id})} accessibilityRole="button">
-                          <Text style={[styles.optText, {color: selected ? theme.primary : theme.text}]}>{c.label}</Text>
+                        <Pressable key={c.id} style={[styles.optChip, { borderColor: selected ? theme.primary : theme.border }, selected && { backgroundColor: `${theme.primary}22` }]} disabled={volBusy} onPress={() => void onVolunteerOption({ capability: c.id })} accessibilityRole="button">
+                          <Text style={[styles.optText, { color: selected ? theme.primary : theme.text }]}>{c.label}</Text>
                         </Pressable>
                       );
                     })}
@@ -365,23 +395,23 @@ export default function MoreScreen() {
             ) : null}
           </View>
         ) : null}
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
           <View style={styles.listRow}>
             <MaterialIcons name="store" size={20} color={theme.primary} />
-            <Text style={[styles.listText, {color: theme.text}]}>{t.provider.title}</Text>
+            <Text style={[styles.listText, { color: theme.text }]}>{t.provider.title}</Text>
           </View>
           {(() => {
             if (!missing.shop && !missing.tow) return null;
             return (
               <View style={styles.providerCtas}>
                 {missing.shop ? (
-                  <Pressable style={[styles.permBtn, {borderColor: theme.border}]} onPress={() => setProviderCreate("SHOP")} accessibilityRole="button" accessibilityLabel={t.provider.addShop}>
-                    <Text style={[styles.permBtnText, {color: theme.primary}]}>{t.provider.addShop}</Text>
+                  <Pressable style={[styles.permBtn, { borderColor: theme.border }]} onPress={() => setProviderCreate("SHOP")} accessibilityRole="button" accessibilityLabel={t.provider.addShop}>
+                    <Text style={[styles.permBtnText, { color: theme.primary }]}>{t.provider.addShop}</Text>
                   </Pressable>
                 ) : null}
                 {missing.tow ? (
-                  <Pressable style={[styles.permBtn, {borderColor: theme.border}]} onPress={() => setProviderCreate("TOW")} accessibilityRole="button" accessibilityLabel={t.provider.registerTow}>
-                    <Text style={[styles.permBtnText, {color: theme.primary}]}>{t.provider.registerTow}</Text>
+                  <Pressable style={[styles.permBtn, { borderColor: theme.border }]} onPress={() => setProviderCreate("TOW")} accessibilityRole="button" accessibilityLabel={t.provider.registerTow}>
+                    <Text style={[styles.permBtnText, { color: theme.primary }]}>{t.provider.registerTow}</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -398,23 +428,23 @@ export default function MoreScreen() {
                 null;
             return (
               <View key={provider.id}>
-                {index === 0 ? null : <View style={[styles.divider, {backgroundColor: theme.divider}]} />}
+                {index === 0 ? null : <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
                 <View style={styles.listRow}>
                   <MaterialIcons name={provider.kind === "TOW" ? "local-shipping" : "storefront"} size={20} color={theme.primary} />
                   <Pressable style={styles.permText} onPress={() => setProviderEdit(provider)} accessibilityRole="button" accessibilityLabel={`${provider.name}, ${pill.label}`}>
-                    <Text style={[styles.listText, {color: theme.text}]}>{provider.name}</Text>
-                    <Text style={[styles.permHint, {color: theme.muted}]}>{providerRowSubtitle(provider, t)}</Text>
-                    {note ? <Text style={[styles.permHint, {color: theme.muted}]}>{note}</Text> : null}
+                    <Text style={[styles.listText, { color: theme.text }]}>{provider.name}</Text>
+                    <Text style={[styles.permHint, { color: theme.muted }]}>{providerRowSubtitle(provider, t)}</Text>
+                    {note ? <Text style={[styles.permHint, { color: theme.muted }]}>{note}</Text> : null}
                   </Pressable>
-                  <View style={[styles.permPill, {backgroundColor: pillBg}]}>
-                    <Text style={[styles.permPillText, {color: pillFg}]}>{pill.label}</Text>
+                  <View style={[styles.permPill, { backgroundColor: pillBg }]}>
+                    <Text style={[styles.permPillText, { color: pillFg }]}>{pill.label}</Text>
                   </View>
-                  <Switch value={provider.accepting !== false} onValueChange={(v) => void onProviderToggle(provider, v)} disabled={!switchEnabled(provider, providerBusy)} trackColor={{false: theme.divider, true: theme.primary}} thumbColor="#ffffff" />
+                  <Switch value={provider.accepting !== false} onValueChange={(v) => void onProviderToggle(provider, v)} disabled={!switchEnabled(provider, providerBusy)} trackColor={{ false: theme.divider, true: theme.primary }} thumbColor="#ffffff" />
                 </View>
                 {provider.kind === "TOW" && provider.status === "DENIED" ? (
                   <View style={styles.providerCtas}>
-                    <Pressable style={[styles.permBtn, {borderColor: theme.border}]} onPress={() => setProviderCreate("TOW")} accessibilityRole="button" accessibilityLabel={t.provider.reapplyTow}>
-                      <Text style={[styles.permBtnText, {color: theme.primary}]}>{t.provider.reapplyTow}</Text>
+                    <Pressable style={[styles.permBtn, { borderColor: theme.border }]} onPress={() => setProviderCreate("TOW")} accessibilityRole="button" accessibilityLabel={t.provider.reapplyTow}>
+                      <Text style={[styles.permBtnText, { color: theme.primary }]}>{t.provider.reapplyTow}</Text>
                     </Pressable>
                   </View>
                 ) : null}
@@ -428,15 +458,15 @@ export default function MoreScreen() {
         {providerEdit ? (
           <ProviderFormDialog t={t} token={token} kind={providerEdit.kind === "TOW" ? "TOW" : "SHOP"} provider={providerEdit} onClose={() => { Keyboard.dismiss(); setProviderEdit(null); }} onSaved={() => { setProviderEdit(null); setNotice(t.provider.saved); void loadProviders(); }} />
         ) : null}
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
           <Pressable style={styles.listRow} onPress={() => navigation.navigate("Diagnostics" as never)}>
             <MaterialIcons name="bug-report" size={20} color={theme.primary} />
-            <Text style={[styles.listText, {color: theme.text}]}>{t.more.diagnostics}</Text>
+            <Text style={[styles.listText, { color: theme.text }]}>{t.more.diagnostics}</Text>
             <MaterialIcons name="chevron-right" size={20} color={theme.muted} />
           </Pressable>
         </View>
-        <View style={[styles.card, {backgroundColor: theme.paper, borderColor: theme.border}]}>
-          <Pressable style={styles.listRow} onPress={() => void signOut()}><MaterialIcons name="logout" size={20} color={theme.danger} /><Text style={[styles.listText, {color: theme.danger}]}>{t.more.signOut}</Text></Pressable>
+        <View style={[styles.card, { backgroundColor: theme.paper, borderColor: theme.border }]}>
+          <Pressable style={styles.listRow} onPress={() => void signOut()}><MaterialIcons name="logout" size={20} color={theme.danger} /><Text style={[styles.listText, { color: theme.danger }]}>{t.more.signOut}</Text></Pressable>
         </View>
       </ScrollView>
       {volError ? (
@@ -450,41 +480,41 @@ export default function MoreScreen() {
   );
 }
 const styles = StyleSheet.create({
-  scroll: {padding: 16, gap: 12},
-  headerCard: {borderWidth: 1, borderRadius: 16, padding: 16, gap: 12, overflow: "hidden"},
-  headerRow: {flexDirection: "row", alignItems: "center", gap: 12},
-  avatar: {width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center"},
-  avatarText: {color: "#fff", fontWeight: "700", fontSize: 18},
-  avatarEdit: {position: "absolute", right: -6, bottom: -6, width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center"},
-  statRow: {flexDirection: "row", marginTop: 4},
-  stat: {flex: 1, alignItems: "center", gap: 2},
-  statNumber: {fontSize: 18, fontWeight: "700"},
-  statLabel: {fontSize: 11},
-  headerText: {flex: 1, minWidth: 0, gap: 2},
-  name: {fontSize: 18, fontWeight: "700"},
-  email: {fontSize: 13},
-  badgeRow: {flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 4},
-  badge: {borderRadius: 12, paddingVertical: 2, paddingHorizontal: 8},
-  badgeText: {color: "#fff", fontSize: 12, fontWeight: "600"},
-  service: {borderWidth: 1, borderRadius: 12, paddingVertical: 2, paddingHorizontal: 8},
-  serviceText: {fontSize: 12},
-  input: {borderWidth: 1, borderRadius: 8, padding: 10},
-  error: {fontSize: 13},
-  card: {borderWidth: 1, borderRadius: 16, overflow: "hidden"},
-  listRow: {flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 16},
-  listText: {flex: 1, fontSize: 15, fontWeight: "500"},
-  permText: {flex: 1, minWidth: 0, gap: 2},
-  permHint: {fontSize: 12},
-  permPill: {borderRadius: 999, paddingVertical: 3, paddingHorizontal: 10},
-  permPillText: {color: "#fff", fontSize: 12, fontWeight: "700"},
-  permBtn: {borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10},
-  permBtnText: {fontSize: 13, fontWeight: "700"},
-  optionBlock: {gap: 8, paddingVertical: 14, paddingHorizontal: 16},
-  optionLabel: {fontSize: 13, fontWeight: "700"},
-  optionRow: {flexDirection: "row", flexWrap: "wrap", gap: 8},
-  optChip: {borderWidth: 1, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16},
-  optText: {fontSize: 13, fontWeight: "600"},
-  listSecondary: {fontSize: 13},
-  providerCtas: {flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 14},
-  divider: {height: 1, marginHorizontal: 16},
+  scroll: { padding: 16, gap: 12 },
+  headerCard: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12, overflow: "hidden" },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "#fff", fontWeight: "700", fontSize: 18 },
+  avatarEdit: { position: "absolute", right: -6, bottom: -6, width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  statRow: { flexDirection: "row", marginTop: 4 },
+  stat: { flex: 1, alignItems: "center", gap: 2 },
+  statNumber: { fontSize: 18, fontWeight: "700" },
+  statLabel: { fontSize: 11 },
+  headerText: { flex: 1, minWidth: 0, gap: 2 },
+  name: { fontSize: 18, fontWeight: "700" },
+  email: { fontSize: 13 },
+  badgeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 4 },
+  badge: { borderRadius: 12, paddingVertical: 2, paddingHorizontal: 8 },
+  badgeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  service: { borderWidth: 1, borderRadius: 12, paddingVertical: 2, paddingHorizontal: 8 },
+  serviceText: { fontSize: 12 },
+  input: { borderWidth: 1, borderRadius: 8, padding: 10 },
+  error: { fontSize: 13 },
+  card: { borderWidth: 1, borderRadius: 16, overflow: "hidden" },
+  listRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
+  listText: { flex: 1, fontSize: 15, fontWeight: "500" },
+  permText: { flex: 1, minWidth: 0, gap: 2 },
+  permHint: { fontSize: 12 },
+  permPill: { borderRadius: 999, paddingVertical: 3, paddingHorizontal: 10 },
+  permPillText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  permBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 },
+  permBtnText: { fontSize: 13, fontWeight: "700" },
+  optionBlock: { gap: 8, paddingVertical: 14, paddingHorizontal: 16 },
+  optionLabel: { fontSize: 13, fontWeight: "700" },
+  optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  optChip: { borderWidth: 1, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16 },
+  optText: { fontSize: 13, fontWeight: "600" },
+  listSecondary: { fontSize: 13 },
+  providerCtas: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
+  divider: { height: 1, marginHorizontal: 16 },
 });

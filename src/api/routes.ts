@@ -1,4 +1,4 @@
-import {api} from "./client";
+import { api } from "./client";
 
 export type LatLng = {
   lat: number;
@@ -62,7 +62,7 @@ export type RouteResult = {
 
 function hasUsableGeometry(value: unknown): value is RouteGeometry {
   if (!value || typeof value !== "object") return false;
-  const coords = (value as {coordinates?: unknown}).coordinates;
+  const coords = (value as { coordinates?: unknown }).coordinates;
   return Array.isArray(coords) && coords.length > 0;
 }
 
@@ -75,7 +75,7 @@ function normalizeRouteOption(route: RouteOption): RouteOption {
 
 export async function findRoute(payload: RouteRequest, token: string): Promise<RouteResult> {
   const result = await api.post<RouteResult>("/routes", payload, token);
-  return {...result, routes: (result.routes ?? []).map(normalizeRouteOption)};
+  return { ...result, routes: (result.routes ?? []).map(normalizeRouteOption) };
 }
 
 export type SavedRouteSummary = {
@@ -110,8 +110,8 @@ export type SaveRoutePayload = {
   geometry: RouteGeometry;
 };
 
-export function saveRoute(payload: SaveRoutePayload, token: string): Promise<{id: string}> {
-  return api.post<{id: string}>("/routes/save", payload, token);
+export function saveRoute(payload: SaveRoutePayload, token: string): Promise<{ id: string }> {
+  return api.post<{ id: string }>("/routes/save", payload, token);
 }
 
 export function listSavedRoutes(token: string): Promise<SavedRouteSummary[]> {
@@ -119,15 +119,15 @@ export function listSavedRoutes(token: string): Promise<SavedRouteSummary[]> {
 }
 
 export function getSavedRoute(routeId: string, token: string): Promise<SavedRoute> {
-  return api.post<SavedRoute>("/routes/saved/one", {routeId}, token);
+  return api.post<SavedRoute>("/routes/saved/one", { routeId }, token);
 }
 
-export function renameSavedRoute(routeId: string, name: string, token: string): Promise<{renamed: number}> {
-  return api.put<{renamed: number}>("/routes/saved", {routeId, name}, token);
+export function renameSavedRoute(routeId: string, name: string, token: string): Promise<{ renamed: number }> {
+  return api.put<{ renamed: number }>("/routes/saved", { routeId, name }, token);
 }
 
-export function deleteSavedRoute(routeId: string, token: string): Promise<{deleted: number}> {
-  return api.post<{deleted: number}>("/routes/unsave", {routeId}, token);
+export function deleteSavedRoute(routeId: string, token: string): Promise<{ deleted: number }> {
+  return api.post<{ deleted: number }>("/routes/unsave", { routeId }, token);
 }
 
 export function isHazardZone(e: unknown): e is HazardZone {
